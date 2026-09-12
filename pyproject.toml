@@ -1,0 +1,14 @@
+[project]
+name = "railblock-ai"
+version = "2.0.0"
+description = "AI-Powered Automatic Block Planning to Maximize Asset Availability for Indian Railways"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "pydantic>=2.6.0"
+]
+
+[tool.vercel]
+entrypoint = "backend.main:app"
