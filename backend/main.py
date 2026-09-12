@@ -9,7 +9,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse, Response
 
 from backend.models import (
     Department, Severity, LineType, MachineType, TrainType, Horizon,
@@ -494,14 +494,58 @@ def add_custom_defect(payload: Dict[str, Any] = Body(...)):
     return {"status": "SUCCESS", "message": f"Defect injected for {dept} and AI plan re-optimized."}
 
 
-# Mount Frontend static files
-frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
-if os.path.exists(frontend_path):
-    app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+# --- Robust Frontend & Static Files Serving for Local & Vercel Serverless ---
 
-@app.get("/")
+def _find_frontend_file(rel_path: str) -> Optional[str]:
+    possible_roots = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend"),
+        os.path.join(os.getcwd(), "frontend"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend"),
+        "/var/task/frontend",
+        "frontend"
+    ]
+    for root in possible_roots:
+        p = os.path.normpath(os.path.join(root, rel_path))
+        if os.path.exists(p) and os.path.isfile(p):
+            return p
+    return None
+
+def _get_index_html() -> str:
+    path = _find_frontend_file("index.html")
+    if path and os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "<!DOCTYPE html><html><body><h1>RailBlock AI</h1><p>Control Room Dashboard loading...</p></body></html>"
+
+# Mount local StaticFiles if directory exists
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+if os.path.exists(frontend_dir):
+    app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+@app.get("/api", response_class=HTMLResponse)
+@app.get("/api/", response_class=HTMLResponse)
+@app.get("/api/index", response_class=HTMLResponse)
+@app.get("/api/index.py", response_class=HTMLResponse)
+@app.get("/index.html", response_class=HTMLResponse)
 def serve_index():
-    index_file = os.path.join(frontend_path, "index.html")
-    if os.path.exists(index_file):
-        return FileResponse(index_file)
-    return {"message": "RailBlock AI Backend Running. Frontend is being loaded."}
+    return HTMLResponse(content=_get_index_html())
+
+@app.get("/static/css/{file_name}")
+@app.get("/css/{file_name}")
+def serve_css(file_name: str):
+    path = _find_frontend_file(f"css/{file_name}")
+    if path and os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return Response(content=f.read(), media_type="text/css")
+    raise HTTPException(status_code=404, detail="CSS file not found")
+
+@app.get("/static/js/{file_name}")
+@app.get("/js/{file_name}")
+def serve_js(file_name: str):
+    path = _find_frontend_file(f"js/{file_name}")
+    if path and os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return Response(content=f.read(), media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="JS file not found")
+
