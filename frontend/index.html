@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RailBlock AI - Indian Railways Automatic Block Planning System</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- =========================================================================
+       LOGIN SCREEN OVERLAY (Shown when logged out)
+       ========================================================================= -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <!-- Left Sidebar: IR Branding & Quick Demo Logins -->
+      <div class="login-sidebar">
+        <div>
+          <div class="login-sidebar-header">
+            <div class="login-emblem">IR</div>
+            <div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #fff;">INDIAN RAILWAYS</div>
+              <div style="font-size: 0.75rem; color: var(--ir-gold); font-weight: 600;">Government of India • Ministry of Railways</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1.5rem; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4;">
+            <b>RailBlock AI (IR-ABPS)</b> unifies fixed infrastructure block planning across Operating, Engineering (TMS), Signalling (SMMS), and Traction (TDMS). Aligned with datasets from <b>data.gov.in/sector/railways</b>.
+          </div>
+
+          <div style="margin-top: 1.5rem;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ir-gold); font-weight: 700;">
+              ⚡ Quick Select Official Role (1-Click Demo)
+            </div>
+            <div class="quick-login-grid" id="quickLoginContainer">
+              <!-- Dynamically loaded from /api/auth/officials -->
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: 0.72rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+          North Central Railway (NCR) • Prayagraj Division<br>
+          Connected to COA, TMS, SMMS, TDMS & data.gov.in Feeds
+        </div>
+      </div>
+
+      <!-- Right Form Pane -->
+      <div class="login-form-pane">
+        <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary);">Officer Portal Login</h2>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+          Enter your Indian Railways official credentials to access the Block Planning Control Room.
+        </p>
+
+        <form id="formLogin" style="margin-top: 1.5rem;">
+          <div class="form-group">
+            <label class="form-label">Username / Official ID</label>
+            <input type="text" id="loginUsername" class="form-control" placeholder="e.g. operating, engineering, admin" value="operating" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="rail123" required>
+          </div>
+
+          <div id="loginErrorMsg" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 1rem;"></div>
+
+          <button type="submit" id="btnLoginSubmit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.7rem; font-size: 0.92rem;">
+            🔐 Secure Officer Login
+          </button>
+        </form>
+
+        <div style="margin-top: 1.5rem; background: var(--bg-inset); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary);">
+          <b>Default Demo Credentials:</b><br>
+          • <code>operating</code> / <code>rail123</code> (Sr. DOM - Operations)<br>
+          • <code>engineering</code> / <code>rail123</code> (Sr. DEN - Track)<br>
+          • <code>signalling</code> / <code>rail123</code> (Sr. DSTE - S&T)<br>
+          • <code>traction</code> / <code>rail123</code> (Sr. DEE - TRD)<br>
+          • <code>admin</code> / <code>admin123</code> (Divisional Railway Manager)
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- =========================================================================
+       MAIN CONTROL ROOM APPLICATION
+       ========================================================================= -->
+  <div id="appContainer" style="display: none;">
+
+    <!-- Top Navigation Header -->
+    <header class="top-navbar">
+      <div class="brand-section">
+        <div class="brand-logo">IR</div>
+        <div class="brand-text">
+          <h1>
+            RailBlock AI 
+            <span class="brand-badge">IR-ABPS v2.0</span>
+          </h1>
+          <div class="brand-subtitle">AI-Powered Automatic Multi-Department Corridor Block Planning System</div>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div class="live-feed-pill">
+          <div class="pulse-dot"></div>
+          <span>TMS • SMMS • TDMS • COA LIVE</span>
+        </div>
+
+        <!-- Domain Name Pill / Switcher Button -->
+        <button class="btn-secondary" onclick="openModal('modalChangeDomain')" style="font-family: var(--font-mono); font-size: 0.76rem; border-color: var(--ir-gold); color: var(--ir-gold);" title="Change Website Domain Name">
+          🌐 <span id="currentDomainPill">abps.indianrailways.gov.in</span>
+        </button>
+
+        <button class="btn-secondary" onclick="openModal('modalAddDefect')">
+          ➕ Ingest Defect
+        </button>
+
+        <button id="btnRunOptimizer" class="btn-primary">
+          ⚡ Run AI Auto-Block Optimizer
+        </button>
+
+        <button id="btnToggleTheme" class="btn-secondary" style="padding: 0.5rem 0.75rem;">
+          ☀️
+        </button>
+
+        <!-- Officer Profile & Logout Widget -->
+        <div class="user-profile-widget">
+          <div id="userAvatar" class="user-avatar" style="background: #10b981;">RS</div>
+          <div class="user-meta">
+            <div id="userName" class="user-name">Rajesh Sharma</div>
+            <div id="userRoleTag" class="user-role-tag">Sr. DOM (Operations)</div>
+          </div>
+          <button id="btnLogout" class="btn-logout" title="Sign Out of Session">
+            Sign Out ➔
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Corridor & Horizon Bar -->
+    <div class="corridor-banner">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span><b>📍 Active High-Density Corridor:</b></span>
+        <select id="corridorSelector" class="form-control" style="width: auto; padding: 0.25rem 0.65rem; font-size: 0.8rem; font-weight: 600;">
+          <option value="CORRIDOR_GRAND_CHORD">Delhi - Kanpur - Prayagraj - DDU (781 KM)</option>
+          <option value="CORRIDOR_WESTERN_TRUNK">Mumbai Central - Surat - Vadodara - Kota - Delhi (1386 KM)</option>
+          <option value="CORRIDOR_SOUTHERN_MAIN">Chennai Central - Katpadi - Salem - Coimbatore (497 KM)</option>
+          <option value="CORRIDOR_EASTERN_TRUNK">Howrah - Asansol - Dhanbad - Gaya - DDU (678 KM)</option>
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span><b>Planning Horizon:</b></span>
+        <div class="horizon-toggle">
+          <button class="horizon-btn active" data-horizon="DAILY">Daily (24h Execution)</button>
+          <button class="horizon-btn" data-horizon="WEEKLY">Weekly (7-Day Rolling)</button>
+          <button class="horizon-btn" data-horizon="MONTHLY">Monthly (30-Day Master)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Executive KPI Row -->
+    <section class="kpi-container">
+      <div class="kpi-card kpi-green">
+        <div class="kpi-title">Projected Asset Availability</div>
+        <div class="kpi-value-row">
+          <div id="kpiAssetAvail" class="kpi-value">96.8%</div>
+          <div id="kpiAssetAvailDelta" class="kpi-delta">+15.4% vs Legacy</div>
+        </div>
+        <div class="kpi-subtext">Fixed infrastructure uptime across track, OHE & signals</div>
+      </div>
+
+      <div class="kpi-card kpi-gold">
+        <div class="kpi-title">Integrated Mega-Blocks</div>
+        <div class="kpi-value-row">
+          <div id="kpiMegaBlocks" class="kpi-value">6 / 8</div>
+          <div id="kpiDeptUtil" class="kpi-delta" style="color: var(--ir-gold);">92.5% Co-util</div>
+        </div>
+        <div class="kpi-subtext">Engineering + S&T + TRD shadow-bundled in single line blocks</div>
+      </div>
+
+      <div class="kpi-card kpi-purple">
+        <div class="kpi-title">Train Delay Mitigation</div>
+        <div class="kpi-value-row">
+          <div id="kpiTrainDelay" class="kpi-value">4.2 hrs</div>
+          <div id="kpiTrainDelayDelta" class="kpi-delta">-44.6% delay</div>
+        </div>
+        <div class="kpi-subtext">Zero added delays to Vande Bharat & Rajdhani express trains</div>
+      </div>
+
+      <div class="kpi-card kpi-green">
+        <div class="kpi-title">Corridor Maintenance Hours</div>
+        <div class="kpi-value-row">
+          <div id="kpiTotalBlockHours" class="kpi-value">21.5 hrs</div>
+          <div id="kpiBundledTasks" class="kpi-delta">18 tasks</div>
+        </div>
+        <div class="kpi-subtext">100% Critical USFD flaws & OHE hotspots resolved on time</div>
+      </div>
+    </section>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-navigation">
+      <button class="tab-btn active" data-target="tabTimetable">
+        🚆 Train Timetable Master (data.gov.in)
+      </button>
+      <button class="tab-btn" data-target="tabMarey">
+        📈 Time-Distance Marey Diagram
+      </button>
+      <button class="tab-btn" data-target="tabSchematic">
+        🛤️ Multi-Section Line Schematic
+      </button>
+      <button class="tab-btn" data-target="tabBlocks">
+        ⚡ AI Optimized Block Schedule
+      </button>
+      <button class="tab-btn" data-target="tabPrioritized">
+        🎯 AI Prioritized Task Pool
+      </button>
+      <button class="tab-btn" data-target="tabFeeds">
+        📡 Departmental Feeds (TMS/SMMS/TDMS)
+      </button>
+      <button class="tab-btn" data-target="tabSimulate">
+        🧪 What-If Simulation Studio
+      </button>
+      <button class="tab-btn" data-target="tabDataGov">
+        🌐 data.gov.in Open Data Hub
+      </button>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+
+      <!-- TAB 1: MASTER TRAIN TIMETABLE (data.gov.in NTES Schema) -->
+      <div id="tabTimetable" class="tab-panel active">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>🚆 Indian Railways Master Train Timetable & Passenger Schedule</h3>
+            <span class="badge badge-mega">Source: data.gov.in / NTES Master</span>
+          </div>
+          <div class="card-body">
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+              Comprehensive timetable feed for premium passenger expresses, mail/superfast, regional MEMU, and freight corridors aligned with <b>Ministry of Railways Open Government Data (data.gov.in)</b>.
+            </p>
+
+            <!-- Timetable Search & Filters Bar -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+              <input type="text" id="timetableSearchInput" class="form-control" placeholder="🔍 Search train number, name, origin, or destination (e.g. 22436, Rajdhani, Vande Bharat)...">
+              
+              <select id="timetableTypeFilter" class="form-control">
+                <option value="">All Train Types</option>
+                <option value="VANDE_BHARAT">Vande Bharat Express</option>
+                <option value="RAJDHANI_SHATABDI">Rajdhani / Shatabdi</option>
+                <option value="SUPERFAST_MAIL">Superfast & Mail/Express</option>
+                <option value="PASSENGER_MEMU">Regional MEMU / Passenger</option>
+                <option value="FREIGHT_CONTAINER">Container Freight (CONCOR)</option>
+                <option value="FREIGHT_COAL_MINERAL">Coal / Heavy Mineral Goods</option>
+              </select>
+
+              <select id="timetableDirectionFilter" class="form-control">
+                <option value="">All Directions (UP & DOWN)</option>
+                <option value="DOWN">DOWN Line (Delhi ➔ DDU / Outward)</option>
+                <option value="UP">UP Line (DDU ➔ Delhi / Return)</option>
+              </select>
+            </div>
+
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Train No</th>
+                    <th>Train Name & Category</th>
+                    <th>Direction</th>
+                    <th>Route (Origin ➔ Destination)</th>
+                    <th>Days of Run</th>
+                    <th>Rake Composition</th>
+                    <th>Avg Speed</th>
+                    <th>Punctuality / Delay</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tableTimetableMasterBody">
+                  <!-- Dynamically populated from /api/timetable -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Time-Distance Marey Chart -->
+      <div id="tabMarey" class="tab-panel">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>
+              📈 Time-Distance Train Graph & Corridor Block Occupations (Marey Diagram)
+            </h3>
+            <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.78rem;">
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="display:inline-block; width:12px; height:3px; background:#f5a623;"></span> Vande Bharat</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="display:inline-block; width:12px; height:3px; background:#38bdf8;"></span> Rajdhani</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="display:inline-block; width:12px; height:3px; background:#818cf8;"></span> Superfast</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="display:inline-block; width:12px; height:2px; background:#94a3b8; border-top: 1px dashed;"></span> Freight Rakes</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="display:inline-block; width:12px; height:10px; background:rgba(16,185,129,0.5); border:1px solid #10b981;"></span> Integrated Block</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-canvas-wrapper">
+              <canvas id="mareyCanvas"></canvas>
+              <div id="chartTooltip" style="position: absolute; display: none; background: rgba(19, 34, 53, 0.95); border: 1px solid #243852; border-radius: 6px; padding: 0.75rem; pointer-events: none; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.5);"></div>
+            </div>
+            <div style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-secondary); display: flex; justify-content: space-between;">
+              <span>💡 <b>Hover over shaded blocks</b> to inspect co-located departmental tasks, machine allocations, and shadow coordination gains.</span>
+              <span><b>X-Axis:</b> 24-Hour Corridor Timeline | <b>Y-Axis:</b> Stations along 781 KM Grand Chord</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Dynamic Track Schematic -->
+      <div id="tabSchematic" class="tab-panel">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>
+              🛤️ Live Corridor Track Line Schematic & Active Block Work Zones
+            </h3>
+            <span class="badge badge-mega">Full Electronic Interlocking View</span>
+          </div>
+          <div class="card-body">
+            <div id="schematicContainer" style="background: var(--bg-inset); border-radius: 8px; border: 1px solid var(--border-color); padding: 1rem; overflow-x: auto;">
+            </div>
+            <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+              <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.8rem;">
+                <b style="color: #38bdf8;">UP MAIN LINE (Delhi ➔ DDU)</b><br>
+                Automatic Block Signalling territory (130-160 km/h). 25kV 50Hz AC OHE traction.
+              </div>
+              <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.8rem;">
+                <b style="color: #f5a623;">DOWN MAIN LINE (DDU ➔ Delhi)</b><br>
+                Reversible twin-single line signaling enabled for seamless single-line block bypass.
+              </div>
+              <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.8rem;">
+                <b style="color: #10b981;">ACTIVE INTEGRATED WORK ZONES</b><br>
+                Green pulsating markers denote active co-coordinated multi-department maintenance blocks.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: Block Schedule Table -->
+      <div id="tabBlocks" class="tab-panel">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>⚡ AI Co-Optimized Maintenance Block Schedule</h3>
+            <span class="badge badge-mega">Form B Disconnection Ready</span>
+          </div>
+          <div class="card-body">
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Block ID</th>
+                    <th>Type</th>
+                    <th>Section & Line</th>
+                    <th>Window & Duration</th>
+                    <th>Participating Departments</th>
+                    <th>Allocated Machines</th>
+                    <th>Shadow Gain</th>
+                    <th>Train Impact</th>
+                    <th>Official Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBlocksBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: AI Prioritized Task Pool -->
+      <div id="tabPrioritized" class="tab-panel">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>🎯 Unified Multi-Criteria AI Criticality & Urgency Task Ranking</h3>
+            <span class="badge badge-high">Ranked by Composite Criticality Score</span>
+          </div>
+          <div class="card-body">
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+              Tasks synthesized from TMS (Track), SMMS (Signals), TDMS (Traction), and BDMS. Composite Score balances Safety Risk (35%), Punctuality/TSR Impact (25%), Asset Degradation Velocity (20%), and Regulatory Urgency (20%).
+            </p>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Task ID</th>
+                    <th>Dept</th>
+                    <th>Maintenance Task Scope</th>
+                    <th>Severity</th>
+                    <th>Criticality Score</th>
+                    <th>Safety / Punctuality</th>
+                    <th>Duration</th>
+                    <th>Machine Demand</th>
+                    <th>Horizon</th>
+                  </tr>
+                </thead>
+                <tbody id="tablePrioritizedTasksBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 6: Raw Feeds -->
+      <div id="tabFeeds" class="tab-panel">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3>🔨 TMS (Track Management System) Feed</h3>
+              <span class="badge badge-eng">Engineering</span>
+            </div>
+            <div class="card-body">
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>ID</th><th>Section</th><th>Location</th><th>Severity</th><th>PSR Penalty</th><th>Urgency</th><th>Defect Details</th></tr>
+                  </thead>
+                  <tbody id="tableTMSFeedBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3>🚆 COA (Control Office Application) Timetable Feed</h3>
+              <span class="badge badge-low">Live Train Precedence</span>
+            </div>
+            <div class="card-body">
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Train No</th><th>Train Name</th><th>Class</th><th>Route</th><th>Speed</th><th>Delay</th></tr>
+                  </thead>
+                  <tbody id="tableCOAFeedBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 7: What-If Simulation Studio -->
+      <div id="tabSimulate" class="tab-panel">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>🧪 Real-Time What-If Scenario Simulation & Dynamic Re-Optimizer</h3>
+            <span class="badge badge-critical">Disruption Testing</span>
+          </div>
+          <div class="card-body">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+              Test the AI optimizer's automated responsiveness to unexpected real-world railway emergencies, freight surges, machine breakdowns, or weather disruptions.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; background: var(--bg-inset); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <div class="form-group">
+                <label class="form-label">Scenario Disruption Type</label>
+                <select id="simScenarioSelect" class="form-control">
+                  <option value="EMERGENCY_RAIL_FRACTURE">⚡ Emergency Rail Weld Fracture (IMR)</option>
+                  <option value="FREIGHT_TRAFFIC_SURGE">🚆 Freight Traffic Surge (+35% Goods Trains)</option>
+                  <option value="TRACK_MACHINE_BREAKDOWN">🚜 Track Machine Breakdown (CSM Tamper)</option>
+                  <option value="FOG_WEATHER_SPEED_DROP">🌫️ Severe Fog Weather Speed Drop (<60 kmph)</option>
+                  <option value="OHE_HOTSPOT_ALERT">⚡ 25kV OHE Jumper Hotspot (95°C)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Section From</label>
+                <input type="text" id="simStnFrom" class="form-control" value="TDL">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Section To</label>
+                <input type="text" id="simStnTo" class="form-control" value="ETW">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">KM Location</label>
+                <input type="number" id="simKm" class="form-control" value="214.5" step="0.1">
+              </div>
+            </div>
+
+            <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+              <button id="btnTriggerSimulation" class="btn-primary" style="padding: 0.65rem 1.5rem;">
+                ⚡ Trigger Scenario Simulation
+              </button>
+            </div>
+
+            <div id="simResultsContainer" style="margin-top: 1.5rem;">
+              <!-- Simulation Results injected here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 8: data.gov.in OPEN DATA HUB -->
+      <div id="tabDataGov" class="tab-panel">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>🌐 Open Government Data (data.gov.in) Railways Sector Catalog</h3>
+            <a href="https://www.data.gov.in/sector/railways" target="_blank" class="btn-secondary" style="font-size: 0.75rem; text-decoration: none;">
+              🔗 View data.gov.in/sector/railways ➔
+            </a>
+          </div>
+          <div class="card-body">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+              RailBlock AI integrates standardized open dataset schemas published under the <b>Open Government Data (OGD) Platform India</b> by the Ministry of Railways. Below are the integrated data catalogs and direct export APIs.
+            </p>
+
+            <div id="dataGovCatalogGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+              <!-- Populated dynamically via app.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+  </div><!-- End appContainer -->
+
+
+  <!-- =========================================================================
+       MODALS
+       ========================================================================= -->
+
+  <!-- Modal 1: Form B Official Sanction Memo -->
+  <div id="modalBlockMemo" class="modal-overlay">
+    <div class="modal-content" style="max-width: 850px;">
+      <div class="modal-header">
+        <h3 style="color: var(--ir-gold);">📋 Official Indian Railways Form B Joint Block Sanction Memo</h3>
+        <button class="btn-secondary" style="padding: 0.25rem 0.6rem;" onclick="closeModal('modalBlockMemo')">✕</button>
+      </div>
+      <div class="modal-body" id="memoContent">
+        <!-- Injected via app.js -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="window.print()">🖨️ Print Sanction Memo</button>
+        <button class="btn-primary" onclick="closeModal('modalBlockMemo')">Close Memo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Train Halts & Route Details Modal -->
+  <div id="modalTrainHalts" class="modal-overlay">
+    <div class="modal-content" style="max-width: 750px;">
+      <div class="modal-header">
+        <h3 id="modalTrainTitle" style="color: var(--ir-gold);">🚆 Train Route & Station Timings</h3>
+        <button class="btn-secondary" style="padding: 0.25rem 0.6rem;" onclick="closeModal('modalTrainHalts')">✕</button>
+      </div>
+      <div class="modal-body" id="modalTrainBody">
+        <!-- Injected via app.js -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeModal('modalTrainHalts')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Add Custom Defect -->
+  <div id="modalAddDefect" class="modal-overlay">
+    <div class="modal-content">
+      <form id="formAddDefect">
+        <div class="modal-header">
+          <h3>➕ Ingest Custom Defect / Telemetry Alert</h3>
+          <button type="button" class="btn-secondary" style="padding: 0.25rem 0.6rem;" onclick="closeModal('modalAddDefect')">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Department</label>
+            <select name="dept" class="form-control">
+              <option value="ENGINEERING">Engineering (TMS)</option>
+              <option value="SNT">Signal & Telecom (SMMS)</option>
+              <option value="TRD">Traction Distribution (TDMS)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Corridor Section</label>
+            <select name="section" class="form-control">
+              <option value="SEC_GZB_ALJN">GZB - ALJN (KM 0 - 106)</option>
+              <option value="SEC_ALJN_TDL">ALJN - TDL (KM 106 - 204)</option>
+              <option value="SEC_TDL_ETW">TDL - ETW (KM 204 - 296)</option>
+              <option value="SEC_ETW_CNB">ETW - CNB (KM 296 - 435)</option>
+              <option value="SEC_CNB_FTP" selected>CNB - FTP (KM 435 - 513)</option>
+              <option value="SEC_FTP_PRYJ">FTP - PRYJ (KM 513 - 628)</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Start KM</label>
+              <input type="number" name="start_km" class="form-control" value="455.0" step="0.1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">End KM</label>
+              <input type="number" name="end_km" class="form-control" value="457.5" step="0.1" required>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Severity Level</label>
+              <select name="severity" class="form-control">
+                <option value="EMERGENCY">EMERGENCY (24h)</option>
+                <option value="CRITICAL" selected>CRITICAL (48h)</option>
+                <option value="HIGH">HIGH (72h)</option>
+                <option value="MEDIUM">MEDIUM (Weekly)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Urgency (Days Remaining)</label>
+              <input type="number" name="urgency" class="form-control" value="2" min="1" max="30">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Defect Type / Code</label>
+            <input type="text" name="defect_type" class="form-control" value="USFD_IMR_WELD_FLAW" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description / Field Notes</label>
+            <textarea name="description" class="form-control" rows="3">Ultrasonic testing detected urgent flaw in rail thermit weld on UP line.</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('modalAddDefect')">Cancel</button>
+          <button type="submit" class="btn-primary">Ingest & Re-Optimize</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: Change Website Domain Name & Branding -->
+  <div id="modalChangeDomain" class="modal-overlay">
+    <div class="modal-content" style="max-width: 650px;">
+      <form id="formChangeDomain">
+        <div class="modal-header">
+          <h3 style="color: var(--ir-gold);">🌐 Change Website Domain Name & Branding</h3>
+          <button type="button" class="btn-secondary" style="padding: 0.25rem 0.6rem;" onclick="closeModal('modalChangeDomain')">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+            Customize the official domain name, host URL, and portal title for this Indian Railways Block Planning deployment.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Select Pre-configured Official Domain</label>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+              <div class="quick-role-chip" onclick="setPresetDomain('abps.indianrailways.gov.in', 'RailBlock AI')">
+                <div>
+                  <b>abps.indianrailways.gov.in</b><br>
+                  <small style="color: var(--text-muted);">Official Indian Railways Government Portal</small>
+                </div>
+                <span class="badge badge-mega">Official IR</span>
+              </div>
+              <div class="quick-role-chip" onclick="setPresetDomain('railblock.cris.org.in', 'CRIS RailBlock')">
+                <div>
+                  <b>railblock.cris.org.in</b><br>
+                  <small style="color: var(--text-muted);">Centre for Railway Information Systems (CRIS)</small>
+                </div>
+                <span class="badge badge-eng">CRIS IT</span>
+              </div>
+              <div class="quick-role-chip" onclick="setPresetDomain('ir-abps.railnet.gov.in', 'RailNet IR-ABPS')">
+                <div>
+                  <b>ir-abps.railnet.gov.in</b><br>
+                  <small style="color: var(--text-muted);">Indian Railways Internal RailNet Intranet</small>
+                </div>
+                <span class="badge badge-snt">RailNet</span>
+              </div>
+              <div class="quick-role-chip" onclick="setPresetDomain('blockplanning.ir.gov.in', 'IR Block Planning Portal')">
+                <div>
+                  <b>blockplanning.ir.gov.in</b><br>
+                  <small style="color: var(--text-muted);">Railway Board Traffic Transportation Directorate</small>
+                </div>
+                <span class="badge badge-trd">Railway Board</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Or Enter Custom Domain Name</label>
+            <input type="text" id="inputCustomDomain" class="form-control" placeholder="e.g. blockplanning.ncr.railnet.gov.in or my-domain.com" value="abps.indianrailways.gov.in" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">System / Portal Name</label>
+            <input type="text" id="inputCustomAppName" class="form-control" placeholder="e.g. RailBlock AI" value="RailBlock AI">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('modalChangeDomain')">Cancel</button>
+          <button type="submit" class="btn-primary">Apply New Domain</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/schematic.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

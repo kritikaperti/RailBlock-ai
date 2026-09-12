@@ -1,0 +1,15 @@
+[Unit]
+Description=RailBlock AI - Indian Railways Automatic Block Planning System
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/var/www/railblock_ai
+Environment="PATH=/var/www/railblock_ai/venv/bin"
+ExecStart=/var/www/railblock_ai/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 3
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
