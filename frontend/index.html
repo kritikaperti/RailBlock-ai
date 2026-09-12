@@ -227,6 +227,9 @@
       <button class="tab-btn" data-target="tabDataGov">
         🌐 data.gov.in Open Data Hub
       </button>
+      <button class="tab-btn" data-target="tabConnectors">
+        🔌 Live Database & CRIS Connectors
+      </button>
     </nav>
 
     <!-- Main Workspace -->
@@ -520,11 +523,139 @@
               RailBlock AI integrates standardized open dataset schemas published under the <b>Open Government Data (OGD) Platform India</b> by the Ministry of Railways. Below are the integrated data catalogs and direct export APIs.
             </p>
 
-            <div id="dataGovCatalogGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+      <!-- TAB 9: LIVE DATABASE & CRIS CONNECTORS HUB -->
+      <div id="tabConnectors" class="tab-panel">
+        
+        <!-- Live Connection Health Overview -->
+        <div class="dashboard-card" style="margin-bottom: 1.5rem;">
+          <div class="card-header">
+            <h3>🔌 Real-Life Indian Railways Database & RailNet Gateway Status</h3>
+            <span id="dbHealthStatusBadge" class="badge badge-mega">LIVE CONNECTED • LATENCY 1.2ms</span>
+          </div>
+          <div class="card-body">
+            <p style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+              Connect production databases (PostgreSQL, Oracle, MySQL, SQLite) and live CRIS / RailNet APIs (TMS, SMMS, TDMS, COA, FOIS, NTES) to stream real-time telemetry into the AI Block Optimizer.
+            </p>
+
+            <!-- Grid of CRIS Live Stream Connectors -->
+            <div id="crisConnectorsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
               <!-- Populated dynamically via app.js -->
+            </div>
+
+            <!-- Database Connection Config Wizard Form -->
+            <div style="background: var(--bg-inset); border: 1px solid var(--border-color); border-radius: 10px; padding: 1.25rem; margin-top: 1rem;">
+              <h4 style="color: var(--ir-gold); margin-bottom: 0.75rem;">⚙️ Enterprise Relational Database Connection Settings</h4>
+              <form id="formDbConnect">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                  <div class="form-group">
+                    <label class="form-label">Database Engine</label>
+                    <select id="dbEngineSelect" class="form-control">
+                      <option value="sqlite">SQLite (Local Embedded Master)</option>
+                      <option value="postgresql">PostgreSQL (Enterprise RailNet)</option>
+                      <option value="oracle">Oracle Database (CRIS Core)</option>
+                      <option value="mysql">MySQL / MariaDB</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Host / Server IP</label>
+                    <input type="text" id="dbHostInput" class="form-control" placeholder="e.g. 10.20.44.12 or localhost" value="localhost">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Port</label>
+                    <input type="number" id="dbPortInput" class="form-control" value="5432">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Database Name</label>
+                    <input type="text" id="dbNameInput" class="form-control" value="railways_enterprise.db">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="dbUserInput" class="form-control" placeholder="railnet_admin" value="railnet_admin">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="dbPassInput" class="form-control" placeholder="••••••••" value="railnet123">
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+                  <button type="button" id="btnTestDbConnection" class="btn-secondary">
+                    🔍 Test Connection
+                  </button>
+                  <button type="submit" class="btn-primary">
+                    ⚡ Connect & Sync Enterprise DB
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
+
+        <!-- Interactive SQL & Live Table Data Query Console -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>📊 Live Database Table Explorer & Interactive SQL Query Console</h3>
+            <div style="display: flex; gap: 0.5rem;">
+              <button id="btnExportQueryCsv" class="btn-secondary" style="font-size: 0.75rem;">📥 Export CSV</button>
+              <button id="btnExportQueryJson" class="btn-secondary" style="font-size: 0.75rem;">📥 Export JSON</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem;">
+              
+              <!-- Left Sidebar: Tables List -->
+              <div style="background: var(--bg-inset); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--ir-gold); margin-bottom: 0.75rem;">
+                  📁 Available Railway Tables
+                </div>
+                <div id="dbTablesList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 380px; overflow-y: auto;">
+                  <!-- Populated dynamically via app.js -->
+                </div>
+              </div>
+
+              <!-- Right Pane: SQL Query Editor & Data Results Table -->
+              <div>
+                <div style="margin-bottom: 1rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label class="form-label" style="margin-bottom: 0;">SQL Query</label>
+                    <div style="display: flex; gap: 0.4rem; font-size: 0.72rem;">
+                      <span style="color: var(--text-muted);">Quick Presets:</span>
+                      <a href="javascript:void(0)" onclick="loadSqlPreset('TMS')" style="color: var(--ir-gold);">TMS Track</a> •
+                      <a href="javascript:void(0)" onclick="loadSqlPreset('SMMS')" style="color: var(--ir-gold);">SMMS S&T</a> •
+                      <a href="javascript:void(0)" onclick="loadSqlPreset('TDMS')" style="color: var(--ir-gold);">TDMS OHE</a> •
+                      <a href="javascript:void(0)" onclick="loadSqlPreset('COA')" style="color: var(--ir-gold);">COA Trains</a>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 0.75rem;">
+                    <textarea id="sqlQueryInput" class="form-control" rows="3" style="font-family: var(--font-mono); font-size: 0.84rem;">SELECT * FROM tms_track_defects ORDER BY urgency_days ASC LIMIT 20;</textarea>
+                    <button id="btnExecuteSql" class="btn-primary" style="align-self: flex-end; padding: 0.75rem 1.25rem;">
+                      ▶️ Run SQL
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Query Results Data Table -->
+                <div id="sqlResultsWrapper" class="data-table-container" style="max-height: 350px;">
+                  <table class="data-table">
+                    <thead id="sqlResultThead">
+                      <tr><th>Run a query or select a table from the left to view live records</th></tr>
+                    </thead>
+                    <tbody id="sqlResultTbody">
+                      <!-- Results injected here -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <div id="sqlResultMeta" style="margin-top: 0.5rem; font-size: 0.76rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                  <span>Status: Ready</span>
+                  <span id="sqlRowCount">0 rows returned</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </main>

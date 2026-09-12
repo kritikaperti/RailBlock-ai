@@ -19,6 +19,8 @@ from backend.models import (
 )
 from backend.auth import AuthManager, OFFICIAL_ACCOUNTS, UserProfile
 from backend.config import get_config, update_domain, SystemConfig
+from backend.db_connector import DB_MANAGER, DBConnectionConfig, QueryRequest
+from backend.live_api_connectors import CONNECTORS_HUB
 from backend.data_generator import DataStore
 from backend.ai_prioritizer import AIPrioritizer
 from backend.multi_horizon_planner import MultiHorizonPlanner
@@ -143,6 +145,58 @@ def set_domain_name(payload: Dict[str, Any] = Body(...)):
     new_domain = payload.get("domain_name", "abps.indianrailways.gov.in")
     new_app_name = payload.get("app_name")
     return update_domain(new_domain=new_domain, new_app_name=new_app_name)
+
+
+# --- Real-Life Database & Live API Connectors API ---
+
+@app.get("/api/db/status")
+def get_db_status():
+    """Returns connection health and summary of records across all railway tables"""
+    return DB_MANAGER.get_database_status()
+
+
+@app.get("/api/db/tables")
+def get_db_tables():
+    """Inspects all table schemas and column structures in connected railway DB"""
+    return DB_MANAGER.list_tables()
+
+
+@app.post("/api/db/connect")
+def connect_database(config: DBConnectionConfig):
+    """Configures connection to PostgreSQL, Oracle, MySQL, or SQLite database"""
+    return DB_MANAGER.connect_external_database(config)
+
+
+@app.post("/api/db/query")
+def execute_sql_query(payload: QueryRequest):
+    """Executes safe SQL queries against connected Indian Railways database"""
+    try:
+        return DB_MANAGER.execute_query(payload.sql_query, limit=payload.limit)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/connectors/status")
+def get_connectors_status():
+    """Returns live connection health for all CRIS & data.gov.in APIs"""
+    return CONNECTORS_HUB.get_connectors_status()
+
+
+@app.post("/api/connectors/cris/sync")
+def sync_cris_feed(payload: Dict[str, str] = Body(...)):
+    """Triggers on-demand synchronization with CRIS (TMS, SMMS, TDMS, COA, FOIS, NTES)"""
+    system_name = payload.get("system_name", "TMS")
+    try:
+        return CONNECTORS_HUB.sync_from_cris(system_name)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/connectors/data-gov/sync")
+def sync_data_gov(payload: Dict[str, Any] = Body(...)):
+    """Synchronizes live datasets from data.gov.in using OGD API Key"""
+    api_key = payload.get("api_key")
+    return CONNECTORS_HUB.sync_from_data_gov_in(api_key)
 
 
 # --- Railway Network & Multi-Corridor API ---

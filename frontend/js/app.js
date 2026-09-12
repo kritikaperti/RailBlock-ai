@@ -305,6 +305,32 @@ function initUIEvents() {
     });
   }
 
+  // Database Connection Form & Test Button
+  const dbForm = document.getElementById('formDbConnect');
+  if (dbForm) {
+    dbForm.addEventListener('submit', handleDbConnect);
+  }
+  const btnTestDb = document.getElementById('btnTestDbConnection');
+  if (btnTestDb) {
+    btnTestDb.addEventListener('click', testDbConnection);
+  }
+
+  // SQL Execution Button
+  const btnExecSql = document.getElementById('btnExecuteSql');
+  if (btnExecSql) {
+    btnExecSql.addEventListener('click', executeSqlQuery);
+  }
+
+  // Query Export Buttons
+  const btnExpCsv = document.getElementById('btnExportQueryCsv');
+  if (btnExpCsv) {
+    btnExpCsv.addEventListener('click', () => exportQueryResults('csv'));
+  }
+  const btnExpJson = document.getElementById('btnExportQueryJson');
+  if (btnExpJson) {
+    btnExpJson.addEventListener('click', () => exportQueryResults('json'));
+  }
+
   // Custom Defect Form
   const defectForm = document.getElementById('formAddDefect');
   if (defectForm) {
@@ -351,6 +377,8 @@ async function loadInitialData() {
     renderPrioritizedTasksTable();
     renderFeedsTables();
     renderDataGovCatalog();
+    loadConnectorsHub();
+    loadDbTables();
     
     AppState.mareyChart.setData(AppState.network.stations, AppState.coaTrains, AppState.currentPlan.blocks);
     AppState.schematic.setData(AppState.network.stations, AppState.currentPlan.blocks);
@@ -898,6 +926,265 @@ function setPresetDomain(domain, appName) {
   document.getElementById('inputCustomAppName').value = appName;
 }
 
+// ==========================================================================
+// REAL-LIFE DATABASE & CRIS CONNECTORS HUB
+// ==========================================================================
+
+async function loadConnectorsHub() {
+  try {
+    const [connRes, dbRes] = await Promise.all([
+      fetch('/api/connectors/status').then(r => r.json()),
+      fetch('/api/db/status').then(r => r.json())
+    ]);
+
+    AppState.connectorsStatus = connRes;
+    
+    // Update DB health badge
+    const badge = document.getElementById('dbHealthStatusBadge');
+    if (badge) {
+      if (dbRes.status === 'CONNECTED') {
+        badge.className = 'badge badge-mega';
+        badge.innerText = `ONLINE: ${dbRes.engine.toUpperCase()} (${dbRes.database_name}) • ${dbRes.latency_ms}ms`;
+      } else {
+        badge.className = 'badge badge-critical';
+        badge.innerText = `DB STATUS: ${dbRes.status}`;
+      }
+    }
+
+    // Render CRIS connectors cards
+    const grid = document.getElementById('crisConnectorsGrid');
+    if (grid && connRes.cris_systems) {
+      grid.innerHTML = Object.entries(connRes.cris_systems).map(([key, sys]) => `
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="badge ${key === 'TMS' ? 'badge-eng' : (key === 'SMMS' ? 'badge-snt' : (key === 'TDMS' ? 'badge-trd' : 'badge-low'))}">${key}</span>
+              <span class="badge badge-mega" style="font-size: 0.65rem;">LIVE STREAM</span>
+            </div>
+            <h4 style="margin-top: 0.5rem; font-size: 0.88rem; color: var(--text-primary);">${sys.system_name}</h4>
+            <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; word-break: break-all;">
+              <code>${sys.api_endpoint}</code>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.5rem;">
+            <span style="font-size: 0.72rem; color: var(--text-secondary);">Sync: Every ${sys.sync_interval_minutes}m</span>
+            <button class="btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.6rem;" onclick="syncCrisSystem('${key}')">
+              🔄 Sync Now
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+  } catch (err) {
+    console.error('Error loading connectors hub:', err);
+  }
+}
+
+async function loadDbTables() {
+  try {
+    const res = await fetch('/api/db/tables');
+    const tables = await res.json();
+    AppState.dbTables = tables;
+
+    const list = document.getElementById('dbTablesList');
+    if (list) {
+      list.innerHTML = tables.map(t => `
+        <div class="quick-role-chip" style="padding: 0.5rem 0.65rem;" onclick="selectDbTable('${t.table_name}')">
+          <div>
+            <div style="font-size: 0.78rem; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary);">${t.table_name}</div>
+            <div style="font-size: 0.68rem; color: var(--text-muted);">${t.department} • ${t.row_count} rows</div>
+          </div>
+          <span style="font-size: 0.7rem; color: var(--ir-gold);">View ➔</span>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Error loading DB tables:', err);
+  }
+}
+
+function selectDbTable(tableName) {
+  const queryInput = document.getElementById('sqlQueryInput');
+  if (queryInput) {
+    queryInput.value = `SELECT * FROM ${tableName} LIMIT 50;`;
+    executeSqlQuery();
+  }
+}
+
+function loadSqlPreset(preset) {
+  const queryInput = document.getElementById('sqlQueryInput');
+  if (!queryInput) return;
+
+  if (preset === 'TMS') {
+    queryInput.value = "SELECT defect_id, section_id, line, start_km, defect_type, severity, speed_restriction_kmph, urgency_days, status FROM tms_track_defects ORDER BY urgency_days ASC;";
+  } else if (preset === 'SMMS') {
+    queryInput.value = "SELECT alert_id, station_code, gear_type, anomaly_type, severity, operating_current_amp, throw_time_seconds, status FROM smms_signal_telemetry ORDER BY severity DESC;";
+  } else if (preset === 'TDMS') {
+    queryInput.value = "SELECT inspection_id, section_id, location_km, ohe_mast_number, defect_type, hotspot_temp_celsius, severity FROM tdms_traction_hotspots ORDER BY hotspot_temp_celsius DESC;";
+  } else if (preset === 'COA') {
+    queryInput.value = "SELECT train_number, train_name, train_type, direction, origin, destination, current_station, delay_minutes FROM coa_live_trains ORDER BY delay_minutes DESC;";
+  }
+  executeSqlQuery();
+}
+
+async function executeSqlQuery() {
+  const queryInput = document.getElementById('sqlQueryInput');
+  const thead = document.getElementById('sqlResultThead');
+  const tbody = document.getElementById('sqlResultTbody');
+  const metaCount = document.getElementById('sqlRowCount');
+  const btn = document.getElementById('btnExecuteSql');
+
+  if (!queryInput || !queryInput.value.trim()) return;
+
+  btn.disabled = true;
+  btn.innerText = 'Running...';
+
+  try {
+    const res = await fetch('/api/db/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql_query: queryInput.value.trim(), limit: 100 })
+    });
+
+    const result = await res.json();
+    if (!res.ok) {
+      throw new Error(result.detail || 'SQL Execution failed');
+    }
+
+    if (result.columns && result.data) {
+      AppState.lastQueryResult = result.data;
+      
+      thead.innerHTML = `<tr>${result.columns.map(c => `<th>${c}</th>`).join('')}</tr>`;
+      
+      if (result.data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${result.columns.length}" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Query executed successfully. 0 rows returned.</td></tr>`;
+      } else {
+        tbody.innerHTML = result.data.map(row => `
+          <tr>
+            ${result.columns.map(col => {
+              const val = row[col];
+              let rendered = val === null || val === undefined ? '<span style="color:var(--text-muted);">NULL</span>' : val;
+              if (typeof val === 'string' && (val === 'EMERGENCY' || val === 'CRITICAL')) {
+                rendered = `<span class="badge badge-${val.toLowerCase()}">${val}</span>`;
+              }
+              return `<td>${rendered}</td>`;
+            }).join('')}
+          </tr>
+        `).join('');
+      }
+
+      if (metaCount) metaCount.innerText = `${result.rows_returned} rows returned`;
+      showToast(`Query executed: ${result.rows_returned} rows fetched`, 'success');
+    } else {
+      tbody.innerHTML = `<tr><td style="color: #10b981; padding: 1rem;">${result.message || 'Statement executed successfully.'}</td></tr>`;
+      showToast(result.message || 'Query executed', 'success');
+    }
+
+  } catch (err) {
+    thead.innerHTML = `<tr><th style="color: #ef4444;">SQL Error</th></tr>`;
+    tbody.innerHTML = `<tr><td style="color: #f87171; padding: 1rem;">${err.message}</td></tr>`;
+    showToast('SQL Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerText = '▶️ Run SQL';
+  }
+}
+
+async function syncCrisSystem(sysName) {
+  try {
+    showToast(`Syncing live records from CRIS ${sysName}...`, 'info');
+    const res = await fetch('/api/connectors/cris/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system_name: sysName })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(data.message, 'success');
+      await loadInitialData();
+      await loadConnectorsHub();
+    } else {
+      showToast(data.detail || 'Sync failed', 'error');
+    }
+  } catch (err) {
+    showToast('Sync error: ' + err.message, 'error');
+  }
+}
+
+async function handleDbConnect(e) {
+  e.preventDefault();
+  const config = {
+    engine: document.getElementById('dbEngineSelect').value,
+    host: document.getElementById('dbHostInput').value,
+    port: parseInt(document.getElementById('dbPortInput').value),
+    database_name: document.getElementById('dbNameInput').value,
+    username: document.getElementById('dbUserInput').value,
+    password: document.getElementById('dbPassInput').value
+  };
+
+  try {
+    const res = await fetch('/api/db/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    const data = await res.json();
+    showToast(data.message, 'success');
+    await loadConnectorsHub();
+    await loadDbTables();
+  } catch (err) {
+    showToast('Database connection failed: ' + err.message, 'error');
+  }
+}
+
+async function testDbConnection() {
+  try {
+    const res = await fetch('/api/db/status');
+    const data = await res.json();
+    if (data.status === 'CONNECTED') {
+      showToast(`Connection verified! ${data.total_tables} railway tables online.`, 'success');
+    } else {
+      showToast(`Connection status: ${data.status}`, 'error');
+    }
+  } catch (err) {
+    showToast('Ping failed: ' + err.message, 'error');
+  }
+}
+
+function exportQueryResults(format) {
+  const data = AppState.lastQueryResult;
+  if (!data || data.length === 0) {
+    showToast('No query results available to export. Run a query first.', 'info');
+    return;
+  }
+
+  let blob;
+  let filename;
+
+  if (format === 'json') {
+    blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    filename = `railway_data_export_${Date.now()}.json`;
+  } else {
+    const columns = Object.keys(data[0]);
+    const csvRows = [
+      columns.join(','),
+      ...data.map(row => columns.map(col => `"${(row[col] ?? '').toString().replace(/"/g, '""')}"`).join(','))
+    ];
+    blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    filename = `railway_data_export_${Date.now()}.csv`;
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${data.length} records to ${filename}`, 'success');
+}
+
 window.viewBlockMemo = viewBlockMemo;
 window.viewTrainHalts = viewTrainHalts;
 window.openModal = openModal;
@@ -905,3 +1192,7 @@ window.closeModal = closeModal;
 window.quickLogin = quickLogin;
 window.setPresetDomain = setPresetDomain;
 window.updateSystemDomain = updateSystemDomain;
+window.loadSqlPreset = loadSqlPreset;
+window.selectDbTable = selectDbTable;
+window.syncCrisSystem = syncCrisSystem;
+
