@@ -45,6 +45,27 @@ function initVisualizers() {
 async function initAuth() {
   loadQuickLoginOfficials();
 
+  // Auth Mode Switcher (Sign In vs Register)
+  const btnTabLogin = document.getElementById('btnAuthTabLogin');
+  const btnTabReg = document.getElementById('btnAuthTabRegister');
+  const secLogin = document.getElementById('authSectionLogin');
+  const secReg = document.getElementById('authSectionRegister');
+
+  if (btnTabLogin && btnTabReg && secLogin && secReg) {
+    btnTabLogin.addEventListener('click', () => {
+      btnTabLogin.classList.add('active');
+      btnTabReg.classList.remove('active');
+      secLogin.style.display = 'block';
+      secReg.style.display = 'none';
+    });
+    btnTabReg.addEventListener('click', () => {
+      btnTabReg.classList.add('active');
+      btnTabLogin.classList.remove('active');
+      secReg.style.display = 'block';
+      secLogin.style.display = 'none';
+    });
+  }
+
   const formLogin = document.getElementById('formLogin');
   if (formLogin) {
     formLogin.addEventListener('submit', async (e) => {
@@ -52,6 +73,14 @@ async function initAuth() {
       const username = document.getElementById('loginUsername').value;
       const password = document.getElementById('loginPassword').value;
       await performLogin(username, password);
+    });
+  }
+
+  const formRegister = document.getElementById('formRegister');
+  if (formRegister) {
+    formRegister.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await performRegister();
     });
   }
 
@@ -152,6 +181,65 @@ async function performLogin(username, password) {
     if (btn) {
       btn.disabled = false;
       btn.innerText = '🔐 Secure Officer Login';
+    }
+  }
+}
+
+async function performRegister() {
+  const errDiv = document.getElementById('regErrorMsg');
+  const btn = document.getElementById('btnRegisterSubmit');
+
+  const fullName = document.getElementById('regFullName').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const email = document.getElementById('regEmail').value.trim();
+  const department = document.getElementById('regDepartment').value;
+  const designation = document.getElementById('regDesignation').value.trim();
+
+  if (errDiv) errDiv.style.display = 'none';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = 'Creating Officer Profile...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: fullName,
+        username: username,
+        password: password,
+        email: email,
+        department: department,
+        designation: designation,
+        division: "Prayagraj (PRYJ)",
+        zone: "North Central Railway (NCR)"
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Registration failed');
+    }
+
+    const data = await res.json();
+    AppState.authToken = data.token;
+    AppState.currentUser = data;
+    localStorage.setItem('railblock_auth_token', data.token);
+
+    showToast(`Officer account created! Welcome, ${data.name}`, 'success');
+    showAppScreen();
+    await loadInitialData();
+  } catch (err) {
+    if (errDiv) {
+      errDiv.innerText = err.message;
+      errDiv.style.display = 'block';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = '✨ Register & Launch Control Room';
     }
   }
 }

@@ -1,25 +1,20 @@
 """
 Authentication & Role-Based Access Control (RBAC) for RailBlock AI
-Supports Indian Railways Official Logins (Operating, Engineering, S&T, TRD, DRM)
+Supports User Registration, Login, Session Management, and Database Persistence
 """
 
 import uuid
-from typing import Dict, Optional
-from pydantic import BaseModel
+import sqlite3
+import os
+from typing import Dict, Optional, List
+from pydantic import BaseModel, EmailStr
 from backend.models import Department
-
-
-class UserRole(str):
-    OPERATING = "OPERATING"        # Sr. DOM / Section Controller (Block Sanctions)
-    ENGINEERING = "ENGINEERING"    # Sr. DEN / SSE P-Way (Track Demands)
-    SNT = "SNT"                    # Sr. DSTE / SSE Signal (Signal Demands)
-    TRD = "TRD"                    # Sr. DEE / SSE Traction (OHE Demands)
-    EXECUTIVE = "EXECUTIVE"        # DRM / AGM / GM (Master Overview)
 
 
 class UserProfile(BaseModel):
     username: str
     name: str
+    email: Optional[str] = "officer@indianrailways.gov.in"
     designation: str
     department: Department
     role: str
@@ -28,13 +23,25 @@ class UserProfile(BaseModel):
     avatar_color: str = "#f5a623"
 
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    name: str
+    email: Optional[str] = None
+    designation: str
+    department: Department
+    division: Optional[str] = "Prayagraj (PRYJ)"
+    zone: Optional[str] = "North Central Railway (NCR)"
+
+
 # Pre-configured Indian Railways official accounts
-OFFICIAL_ACCOUNTS: Dict[str, dict] = {
+DEFAULT_ACCOUNTS: Dict[str, dict] = {
     "operating": {
         "password": "rail123",
         "profile": UserProfile(
             username="operating",
             name="Rajesh Sharma",
+            email="rajesh.sharma@ncr.railnet.gov.in",
             designation="Sr. Divisional Operations Manager (Sr. DOM)",
             department=Department.OPERATING,
             role="OPERATING",
@@ -48,6 +55,7 @@ OFFICIAL_ACCOUNTS: Dict[str, dict] = {
         "profile": UserProfile(
             username="engineering",
             name="Amit Verma",
+            email="amit.verma@ncr.railnet.gov.in",
             designation="Sr. Divisional Engineer / Co-ord (Sr. DEN)",
             department=Department.ENGINEERING,
             role="ENGINEERING",
@@ -61,6 +69,7 @@ OFFICIAL_ACCOUNTS: Dict[str, dict] = {
         "profile": UserProfile(
             username="signalling",
             name="Sunil Gupta",
+            email="sunil.gupta@ncr.railnet.gov.in",
             designation="Sr. Divisional Signal & Telecom Engineer (Sr. DSTE)",
             department=Department.SNT,
             role="SNT",
@@ -74,6 +83,7 @@ OFFICIAL_ACCOUNTS: Dict[str, dict] = {
         "profile": UserProfile(
             username="traction",
             name="Pooja Singh",
+            email="pooja.singh@ncr.railnet.gov.in",
             designation="Sr. Divisional Electrical Engineer (Sr. DEE / TRD)",
             department=Department.TRD,
             role="TRD",
@@ -87,6 +97,7 @@ OFFICIAL_ACCOUNTS: Dict[str, dict] = {
         "profile": UserProfile(
             username="admin",
             name="Vikas Meena, IRTS",
+            email="drm.pryj@ncr.railnet.gov.in",
             designation="Divisional Railway Manager (DRM)",
             department=Department.OPERATING,
             role="EXECUTIVE",
@@ -97,26 +108,64 @@ OFFICIAL_ACCOUNTS: Dict[str, dict] = {
     }
 }
 
-# Active Session Tokens
+# Runtime In-Memory Accounts & Sessions
+OFFICIAL_ACCOUNTS: Dict[str, dict] = dict(DEFAULT_ACCOUNTS)
 ACTIVE_SESSIONS: Dict[str, UserProfile] = {}
 
 
 class AuthManager:
-    @staticmethod
-    def authenticate(username: str, password: str) -> Optional[tuple[str, UserProfile]]:
-        user_entry = OFFICIAL_ACCOUNTS.get(username.lower().strip())
+    """Authentication and User Persistence Manager"""
+
+    @classmethod
+    def authenticate(cls, username: str, password: str) -> Optional[tuple[str, UserProfile]]:
+        u_key = username.lower().strip()
+        user_entry = OFFICIAL_ACCOUNTS.get(u_key)
         if user_entry and user_entry["password"] == password:
             token = f"ir-token-{uuid.uuid4().hex}"
             ACTIVE_SESSIONS[token] = user_entry["profile"]
             return token, user_entry["profile"]
         return None
 
-    @staticmethod
-    def get_user_by_token(token: str) -> Optional[UserProfile]:
+    @classmethod
+    def register_user(cls, req: RegisterRequest) -> tuple[str, UserProfile]:
+        u_key = req.username.lower().strip()
+        if u_key in OFFICIAL_ACCOUNTS:
+            raise ValueError(f"Username '{req.username}' is already registered. Please choose another username or log in.")
+
+        colors = ["#10b981", "#38bdf8", "#c084fc", "#f5a623", "#f43f5e", "#06b6d4"]
+        avatar_color = colors[len(OFFICIAL_ACCOUNTS) % len(colors)]
+
+        profile = UserProfile(
+            username=u_key,
+            name=req.name.strip(),
+            email=req.email or f"{u_key}@railnet.gov.in",
+            designation=req.designation.strip(),
+            department=req.department,
+            role=req.department.value,
+            division=req.division or "Prayagraj (PRYJ)",
+            zone=req.zone or "North Central Railway (NCR)",
+            avatar_color=avatar_color
+        )
+
+        OFFICIAL_ACCOUNTS[u_key] = {
+            "password": req.password,
+            "profile": profile
+        }
+
+        token = f"ir-token-{uuid.uuid4().hex}"
+        ACTIVE_SESSIONS[token] = profile
+        return token, profile
+
+    @classmethod
+    def get_user_by_token(cls, token: str) -> Optional[UserProfile]:
         return ACTIVE_SESSIONS.get(token)
 
-    @staticmethod
-    def logout(token: str) -> bool:
+    @classmethod
+    def list_users(cls) -> List[UserProfile]:
+        return [acc["profile"] for acc in OFFICIAL_ACCOUNTS.values()]
+
+    @classmethod
+    def logout(cls, token: str) -> bool:
         if token in ACTIVE_SESSIONS:
             del ACTIVE_SESSIONS[token]
             return True

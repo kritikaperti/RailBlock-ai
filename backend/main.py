@@ -17,7 +17,7 @@ from backend.models import (
     PrioritizedTask, OptimizedBlock, HorizonPlanSummary, WhatIfScenarioRequest,
     WhatIfSimulationResult, SystemBenchmarkMetrics, LoginRequest, LoginResponse
 )
-from backend.auth import AuthManager, OFFICIAL_ACCOUNTS, UserProfile
+from backend.auth import AuthManager, OFFICIAL_ACCOUNTS, UserProfile, RegisterRequest
 from backend.config import get_config, update_domain, SystemConfig
 from backend.db_connector import DB_MANAGER, DBConnectionConfig, QueryRequest
 from backend.live_api_connectors import CONNECTORS_HUB
@@ -113,6 +113,33 @@ def get_current_user(token: Optional[str] = Query(None)):
         "authenticated": True,
         "user": user
     }
+
+
+@app.post("/api/auth/register", response_model=LoginResponse)
+def register_user(req: RegisterRequest):
+    """Registers a new officer/user account and creates an active session"""
+    try:
+        token, profile = AuthManager.register_user(req)
+        return LoginResponse(
+            status="SUCCESS",
+            token=token,
+            username=profile.username,
+            name=profile.name,
+            designation=profile.designation,
+            department=profile.department.value,
+            role=profile.role,
+            division=profile.division,
+            zone=profile.zone,
+            avatar_color=profile.avatar_color
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/auth/users", response_model=List[UserProfile])
+def get_all_registered_users():
+    """Lists all registered Indian Railways users and officers"""
+    return AuthManager.list_users()
 
 
 @app.get("/api/auth/officials")

@@ -69,6 +69,36 @@ class TestAuthentication(unittest.TestCase):
         officials = res.json()
         self.assertGreaterEqual(len(officials), 5)
 
+    def test_user_registration(self):
+        """Test registering a new officer user"""
+        reg_payload = {
+            "name": "Kritika Perti",
+            "username": "kperti_test",
+            "password": "securepass123",
+            "email": "kperti@railnet.gov.in",
+            "department": "ENGINEERING",
+            "designation": "Sr. Divisional Engineer / Track",
+            "division": "Prayagraj (PRYJ)",
+            "zone": "North Central Railway (NCR)"
+        }
+        res = client.post("/api/auth/register", json=reg_payload)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "SUCCESS")
+        self.assertTrue(data["token"].startswith("ir-token-"))
+        self.assertEqual(data["username"], "kperti_test")
+        self.assertEqual(data["name"], "Kritika Perti")
+
+        # Duplicate username should be rejected
+        res_dup = client.post("/api/auth/register", json=reg_payload)
+        self.assertEqual(res_dup.status_code, 400)
+
+        # Verify listed in /api/auth/users
+        res_users = client.get("/api/auth/users")
+        self.assertEqual(res_users.status_code, 200)
+        usernames = [u["username"] for u in res_users.json()]
+        self.assertIn("kperti_test", usernames)
+
 
 if __name__ == "__main__":
     unittest.main()
