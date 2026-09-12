@@ -41,6 +41,14 @@ def test_api_suite():
     assert len(data["stations"]) >= 8
     print("[OK] Network endpoint OK")
 
+    print("Testing GET /api/network/terrain...")
+    res = client.get("/api/network/terrain")
+    assert res.status_code == 200
+    terr_data = res.json()
+    assert terr_data["total_rivers"] >= 5
+    assert terr_data["total_jungles"] >= 3
+    print("[OK] Terrain Rivers & Jungles endpoint OK")
+
     print("Testing GET /api/timetable (data.gov.in NTES Master)...")
     res = client.get("/api/timetable")
     assert res.status_code == 200

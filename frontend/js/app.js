@@ -25,7 +25,11 @@ const AppState = {
   dataGovCatalog: null,
   mareyChart: null,
   schematic: null,
+  terrainVisualizer: null,
+  terrainData: null,
 };
+
+window.AppState = AppState;
 
 document.addEventListener('DOMContentLoaded', async () => {
   initUIEvents();
@@ -36,6 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function initVisualizers() {
   AppState.mareyChart = new MareyStringChart('mareyCanvas', 'chartTooltip');
   AppState.schematic = new CorridorTrackSchematic('schematicContainer');
+  AppState.terrainVisualizer = new TerrainRouteVisualizer('terrainMapContainer');
 }
 
 // ==========================================================================
@@ -432,7 +437,7 @@ function initUIEvents() {
 
 async function loadInitialData() {
   try {
-    const [netRes, sumRes, tasksRes, planRes, benchRes, coaRes, tmsRes, smmsRes, tdmsRes, ttRes, catRes] = await Promise.all([
+    const [netRes, sumRes, tasksRes, planRes, benchRes, coaRes, tmsRes, smmsRes, tdmsRes, ttRes, catRes, terrRes] = await Promise.all([
       fetch(`/api/network?corridor_id=${AppState.activeCorridor}`).then(r => r.json()),
       fetch('/api/feeds/summary').then(r => r.json()),
       fetch('/api/tasks/prioritized').then(r => r.json()),
@@ -444,6 +449,7 @@ async function loadInitialData() {
       fetch('/api/feeds/tdms').then(r => r.json()),
       fetch('/api/timetable').then(r => r.json()),
       fetch('/api/data-gov-in/catalog').then(r => r.json()),
+      fetch(`/api/network/terrain?corridor_id=${AppState.activeCorridor}`).then(r => r.json()),
     ]);
 
     AppState.network = netRes;
@@ -458,6 +464,7 @@ async function loadInitialData() {
     AppState.timetableMaster = ttRes.trains || [];
     AppState.filteredTimetable = AppState.timetableMaster;
     AppState.dataGovCatalog = catRes;
+    AppState.terrainData = terrRes ? terrRes.terrain : null;
 
     renderKPIs();
     renderTimetableMaster();
@@ -468,6 +475,9 @@ async function loadInitialData() {
     loadConnectorsHub();
     loadDbTables();
     
+    if (AppState.terrainVisualizer && AppState.terrainData) {
+      AppState.terrainVisualizer.setData(AppState.network.stations, AppState.terrainData, AppState.coaTrains, AppState.currentPlan.blocks);
+    }
     AppState.mareyChart.setData(AppState.network.stations, AppState.coaTrains, AppState.currentPlan.blocks);
     AppState.schematic.setData(AppState.network.stations, AppState.currentPlan.blocks);
     

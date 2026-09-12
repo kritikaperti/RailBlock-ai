@@ -85,6 +85,34 @@ SECTIONS_GRAND_CHORD = [
     {"id": "SEC_MZP_DDU", "from": "MZP", "to": "DDU", "start_km": 717.0, "end_km": 781.0, "max_speed": 130, "lines_count": 4, "track_structure": "60kg UIC / PSC 1660"},
 ]
 
+# ==============================================================================
+# GEOGRAPHIC TERRAIN & NATURAL FEATURES (Rivers, Jungles, Bridges & Sanctuaries)
+# ==============================================================================
+
+TERRAIN_FEATURES_GRAND_CHORD = {
+    "rivers": [
+        {"id": "RIV_YAMUNA_1", "name": "Yamuna River (Delhi Bridge #4)", "km": 4.5, "width_meters": 650, "water_level": "Normal", "type": "MAJOR_RIVER"},
+        {"id": "RIV_HINDON", "name": "Hindon River Bridge #12", "km": 14.2, "width_meters": 320, "water_level": "Moderate", "type": "TRIBUTARY"},
+        {"id": "RIV_KALI", "name": "Kali Nadi River Bridge #74", "km": 86.5, "width_meters": 180, "water_level": "Normal", "type": "TRIBUTARY"},
+        {"id": "RIV_YAMUNA_2", "name": "Yamuna River Crossing (Agra/Tundla)", "km": 199.0, "width_meters": 580, "water_level": "Normal", "type": "MAJOR_RIVER"},
+        {"id": "RIV_SENGAR", "name": "Sengar River Bridge #278", "km": 312.0, "width_meters": 220, "water_level": "Normal", "type": "TRIBUTARY"},
+        {"id": "RIV_GANGA_1", "name": "Ganga River Rail-Road Bridge (Kanpur)", "km": 438.5, "width_meters": 950, "water_level": "High/Monsoon", "type": "HOLY_RIVER"},
+        {"id": "RIV_PANDU", "name": "Pandu River Bridge #412", "km": 452.0, "width_meters": 160, "water_level": "Normal", "type": "TRIBUTARY"},
+        {"id": "RIV_SASUR_KHADERI", "name": "Sasur Khaderi River Bridge", "km": 532.0, "width_meters": 140, "water_level": "Normal", "type": "TRIBUTARY"},
+        {"id": "RIV_SANGAM", "name": "Yamuna-Ganga Sangam / Old Naini Bridge #512", "km": 632.0, "width_meters": 1020, "water_level": "High/Monsoon", "type": "HOLY_RIVER"},
+        {"id": "RIV_TONS", "name": "Tons River Bridge #544", "km": 668.0, "width_meters": 280, "water_level": "Normal", "type": "TRIBUTARY"},
+        {"id": "RIV_GANGA_2", "name": "Ganga River Malviya Bridge #620 (DDU/BSB)", "km": 774.0, "width_meters": 1050, "water_level": "High/Monsoon", "type": "HOLY_RIVER"},
+    ],
+    "jungles": [
+        {"id": "JGL_HASTINAPUR", "name": "Hastinapur Wetland & Jungle Reserve", "start_km": 18.0, "end_km": 42.0, "flora_type": "Dense Sal & Mixed Deciduous", "elephant_wildlife_caution": False},
+        {"id": "JGL_KEETHAM", "name": "Sur Sarovar (Keetham) Bird Forest Sanctuary", "start_km": 185.0, "end_km": 202.0, "flora_type": "Wetland Forest & Shrubland", "elephant_wildlife_caution": False},
+        {"id": "JGL_CHAMBAL", "name": "National Chambal Wildlife Forest & Ravines", "start_km": 248.0, "end_km": 292.0, "flora_type": "Dry Scrub, Ravines & Forest Reserve", "elephant_wildlife_caution": True},
+        {"id": "JGL_ALLEN", "name": "Allen Forest Sanctuary & Ganga Khadir Belt", "start_km": 418.0, "end_km": 434.0, "flora_type": "Dense Canopy Sub-tropical Forest", "elephant_wildlife_caution": False},
+        {"id": "JGL_VINDHYA", "name": "Vindhyachal Forest Range & Mirzapur Hills", "start_km": 675.0, "end_km": 740.0, "flora_type": "Vindhyan Tropical Dry Deciduous Hills", "elephant_wildlife_caution": True},
+        {"id": "JGL_KAIMUR", "name": "Kaimur Wildlife Sanctuary & Chandauli Forest", "start_km": 748.0, "end_km": 778.0, "flora_type": "Dense Hill Forest & Wildlife Corridor", "elephant_wildlife_caution": True},
+    ]
+}
+
 # Western Corridor Stations
 STATIONS_WESTERN = [
     {"code": "MMCT", "name": "Mumbai Central", "km": 0.0, "lines": 8, "has_depot": True, "state": "Maharashtra", "zone": "WR"},

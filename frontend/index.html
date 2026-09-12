@@ -271,7 +271,10 @@
 
     <!-- Tab Navigation -->
     <nav class="tab-navigation">
-      <button class="tab-btn active" data-target="tabTimetable">
+      <button class="tab-btn active" data-target="tabTerrain">
+        🗺️ Live Route, Rivers & Jungles (Work Undergoing)
+      </button>
+      <button class="tab-btn" data-target="tabTimetable">
         🚆 Train Timetable Master (data.gov.in)
       </button>
       <button class="tab-btn" data-target="tabMarey">
@@ -303,8 +306,28 @@
     <!-- Main Workspace -->
     <main class="main-workspace">
 
+      <!-- TAB 0: LIVE ROUTE, TERRAIN & WORK UNDERGOING -->
+      <div id="tabTerrain" class="tab-panel active">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>🗺️ Live Corridor Route Map — Stations, Rivers, Jungles & Work Undergoing</h3>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <span class="badge badge-mega">Live Animated Operations</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+              Real-time geographic corridor view displaying <b>stations with platform chainage</b>, <b>river crossings & major bridges</b>, <b>forest reserves & wildlife sanctuaries</b>, <b>live moving train speeds & timings</b>, and <b>active track & OHE maintenance work undergoing</b>.
+            </p>
+            <div id="terrainMapContainer">
+              <!-- Rendered via terrain_map.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- TAB 1: MASTER TRAIN TIMETABLE (data.gov.in NTES Schema) -->
-      <div id="tabTimetable" class="tab-panel active">
+      <div id="tabTimetable" class="tab-panel">
         <div class="dashboard-card">
           <div class="card-header">
             <h3>🚆 Indian Railways Master Train Timetable & Passenger Schedule</h3>
@@ -910,6 +933,7 @@
 
   <script src="/static/js/charts.js"></script>
   <script src="/static/js/schematic.js"></script>
+  <script src="/static/js/terrain_map.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 </html>

@@ -245,6 +245,18 @@ def get_network(corridor_id: Optional[str] = "CORRIDOR_GRAND_CHORD"):
     }
 
 
+@app.get("/api/network/terrain")
+def get_corridor_terrain(corridor_id: Optional[str] = "CORRIDOR_GRAND_CHORD"):
+    """Returns geographic rivers, jungles, forest reserves, and bridges along the corridor"""
+    from backend.data_generator import TERRAIN_FEATURES_GRAND_CHORD
+    return {
+        "corridor_id": corridor_id,
+        "terrain": TERRAIN_FEATURES_GRAND_CHORD,
+        "total_rivers": len(TERRAIN_FEATURES_GRAND_CHORD["rivers"]),
+        "total_jungles": len(TERRAIN_FEATURES_GRAND_CHORD["jungles"])
+    }
+
+
 # --- Train Timetable & Passenger Operations (data.gov.in Schema) ---
 
 @app.get("/api/timetable")
