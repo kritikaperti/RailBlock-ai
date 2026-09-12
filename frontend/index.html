@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RailBlock AI - Indian Railways Automatic Block Planning System</title>
+  <link rel="icon" type="image/png" href="/static/assets/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/assets/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/assets/favicon.png">
+  <link rel="shortcut icon" href="/static/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/assets/favicon.png">
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +25,9 @@
       <div class="login-sidebar">
         <div>
           <div class="login-sidebar-header">
-            <div class="login-emblem">IR</div>
+            <div class="login-emblem" style="background: #ffffff; padding: 3px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px;">
+              <img src="/static/assets/train-icon.png" alt="Indian Railways Train Emblem" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
             <div>
               <div style="font-size: 1.15rem; font-weight: 800; color: #fff;">INDIAN RAILWAYS</div>
               <div style="font-size: 0.75rem; color: var(--ir-gold); font-weight: 600;">Government of India • Ministry of Railways</div>
@@ -232,7 +239,9 @@
     <!-- Top Navigation Header -->
     <header class="top-navbar">
       <div class="brand-section">
-        <div class="brand-logo">IR</div>
+        <div class="brand-logo" style="background: #ffffff; padding: 2px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px;">
+          <img src="/static/assets/train-icon.png" alt="IR Emblem" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
         <div class="brand-text">
           <h1>
             RailBlock AI 
@@ -248,9 +257,10 @@
           <span>TMS • SMMS • TDMS • COA LIVE</span>
         </div>
 
-        <!-- Domain Name Pill / Switcher Button -->
-        <button class="btn-secondary" onclick="openModal('modalChangeDomain')" style="font-family: var(--font-mono); font-size: 0.76rem; border-color: var(--ir-gold); color: var(--ir-gold);" title="Change Website Domain Name">
-          🌐 <span id="currentDomainPill">abps.indianrailways.gov.in</span>
+        <!-- Domain Name Pill / Switcher Button (with Train Icon on side of URL) -->
+        <button class="btn-secondary" onclick="openModal('modalChangeDomain')" style="font-family: var(--font-mono); font-size: 0.76rem; border-color: var(--ir-gold); color: var(--ir-gold); display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.75rem;" title="Change Website Domain Name">
+          <img src="/static/assets/train-icon.png" alt="Rail Icon" style="width: 18px; height: 18px; object-fit: contain; background: #ffffff; border-radius: 3px; padding: 1px;">
+          <span id="currentDomainPill">abps.indianrailways.gov.in</span>
         </button>
 
         <button class="btn-secondary" onclick="openModal('modalAddDefect')">

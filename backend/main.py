@@ -629,6 +629,27 @@ if os.path.exists(frontend_dir):
 def serve_index():
     return HTMLResponse(content=_get_index_html())
 
+
+@app.get("/favicon.ico")
+@app.get("/static/favicon.ico")
+def serve_favicon():
+    path = _find_frontend_file("favicon.ico") or _find_frontend_file("assets/favicon.png")
+    if path and os.path.exists(path):
+        return FileResponse(path, media_type="image/x-icon")
+    raise HTTPException(status_code=404, detail="Favicon not found")
+
+
+@app.get("/favicon.png")
+@app.get("/static/favicon.png")
+@app.get("/assets/{file_name}")
+@app.get("/static/assets/{file_name}")
+def serve_asset(file_name: str = "favicon.png"):
+    path = _find_frontend_file(f"assets/{file_name}") or _find_frontend_file(file_name)
+    if path and os.path.exists(path):
+        return FileResponse(path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Asset not found")
+
+
 @app.get("/static/css/{file_name}")
 @app.get("/css/{file_name}")
 def serve_css(file_name: str):
@@ -637,6 +658,7 @@ def serve_css(file_name: str):
         with open(path, "r", encoding="utf-8") as f:
             return Response(content=f.read(), media_type="text/css")
     raise HTTPException(status_code=404, detail="CSS file not found")
+
 
 @app.get("/static/js/{file_name}")
 @app.get("/js/{file_name}")

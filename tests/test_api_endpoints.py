@@ -123,6 +123,13 @@ def test_api_suite():
     assert res.status_code == 200
     print("[OK] Frontend root OK")
 
+    print("Testing favicon endpoints GET /favicon.ico & /favicon.png...")
+    res_ico = client.get("/favicon.ico")
+    assert res_ico.status_code == 200
+    res_png = client.get("/favicon.png")
+    assert res_png.status_code == 200
+    print("[OK] Favicon and static assets OK")
+
     print("\n==========================================")
     print("ALL API ENDPOINTS TESTED AND VERIFIED OK!")
     print("==========================================")
