@@ -99,6 +99,38 @@ class TestAuthentication(unittest.TestCase):
         usernames = [u["username"] for u in res_users.json()]
         self.assertIn("kperti_test", usernames)
 
+    def test_passenger_login_and_profile(self):
+        """Test logging in with default passenger account without department requirement"""
+        res = client.post("/api/auth/login", json={"username": "passenger", "password": "pass123"})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "SUCCESS")
+        self.assertEqual(data["user_type"], "PASSENGER")
+        self.assertEqual(data["name"], "Rahul Mehra")
+        self.assertIsNone(data.get("department"))
+
+    def test_passenger_registration(self):
+        """Test passenger account creation without department or designation"""
+        reg_payload = {
+            "name": "Simran Kaur",
+            "username": "simran_traveler",
+            "password": "passUser789",
+            "email": "simran@gmail.com",
+            "user_type": "PASSENGER",
+            "department": None,
+            "designation": None,
+            "division": "Northern Railway",
+            "zone": "NR"
+        }
+        res = client.post("/api/auth/register", json=reg_payload)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "SUCCESS")
+        self.assertEqual(data["user_type"], "PASSENGER")
+        self.assertEqual(data["name"], "Simran Kaur")
+        self.assertIsNone(data.get("department"))
+        self.assertEqual(data.get("designation"), "Train Passenger")
+
 
 if __name__ == "__main__":
     unittest.main()

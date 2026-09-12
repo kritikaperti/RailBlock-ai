@@ -12,11 +12,11 @@
 <body>
 
   <!-- =========================================================================
-       LOGIN SCREEN OVERLAY (Shown when logged out)
+       LOGIN & REGISTRATION SCREEN OVERLAY (Train Passengers vs Railway Staff)
        ========================================================================= -->
   <div id="loginScreen" class="login-screen">
-    <div class="login-card">
-      <!-- Left Sidebar: IR Branding & Quick Demo Logins -->
+    <div class="login-card" style="max-width: 950px;">
+      <!-- Left Sidebar: Indian Railways Branding & Persona Switcher -->
       <div class="login-sidebar">
         <div>
           <div class="login-sidebar-header">
@@ -27,107 +27,178 @@
             </div>
           </div>
 
-          <div style="margin-top: 1.5rem; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4;">
-            <b>RailBlock AI (IR-ABPS)</b> unifies fixed infrastructure block planning across Operating, Engineering (TMS), Signalling (SMMS), and Traction (TDMS). Aligned with datasets from <b>data.gov.in/sector/railways</b>.
+          <div style="margin-top: 1.25rem; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4;">
+            Unified Railway Platform for <b>Train Passengers</b> (Live Routes, Timetables & Terrain Map) and <b>Railway Staff</b> (AI Automatic Block Planning, TMS, SMMS & TDMS).
           </div>
 
+          <!-- User Persona Selection Buttons -->
           <div style="margin-top: 1.5rem;">
-            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ir-gold); font-weight: 700;">
-              ⚡ Quick Select Official Role (1-Click Demo)
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ir-gold); font-weight: 700; margin-bottom: 0.5rem;">
+              👤 Select Your Portal Role
             </div>
-            <div class="quick-login-grid" id="quickLoginContainer">
+            
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <button type="button" id="btnPersonaPassenger" class="quick-role-chip active" style="border: 2px solid var(--ir-gold); cursor: pointer; text-align: left; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                  <span style="font-size: 1.2rem;">🚆</span>
+                  <div>
+                    <div style="font-size: 0.82rem; font-weight: 700; color: #fff;">Train Passenger / Citizen</div>
+                    <div style="font-size: 0.68rem; color: var(--text-secondary);">Route Map, Rivers, Jungles, Timetables & Advisories</div>
+                  </div>
+                </div>
+                <span class="badge badge-gold">Passenger</span>
+              </button>
+
+              <button type="button" id="btnPersonaEmployee" class="quick-role-chip" style="cursor: pointer; text-align: left; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                  <span style="font-size: 1.2rem;">🛡️</span>
+                  <div>
+                    <div style="font-size: 0.82rem; font-weight: 700; color: #fff;">Railway Employee / Staff</div>
+                    <div style="font-size: 0.68rem; color: var(--text-secondary);">AI Block Optimizer, Form B, TMS, SMMS & TRD</div>
+                  </div>
+                </div>
+                <span class="badge badge-mega">Officer</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Demo Logins (for Staff) -->
+          <div id="quickLoginSection" style="margin-top: 1.25rem; display: none;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ir-gold); font-weight: 700;">
+              ⚡ 1-Click Officer Demo Logins
+            </div>
+            <div class="quick-login-grid" id="quickLoginContainer" style="margin-top: 0.4rem;">
               <!-- Dynamically loaded from /api/auth/officials -->
             </div>
           </div>
         </div>
 
         <div style="font-size: 0.72rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-          North Central Railway (NCR) • Prayagraj Division<br>
-          Connected to COA, TMS, SMMS, TDMS & data.gov.in Feeds
+          Integrated with data.gov.in/sector/railways • CRIS RailNet
         </div>
       </div>
 
       <!-- Right Form Pane -->
       <div class="login-form-pane">
-        <!-- Auth Mode Tabs -->
+        
+        <!-- Auth Mode Tabs (Sign In vs Register) -->
         <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
           <button type="button" id="btnAuthTabLogin" class="horizon-btn active" style="flex: 1; justify-content: center; padding: 0.45rem;">
             🔑 Sign In
           </button>
           <button type="button" id="btnAuthTabRegister" class="horizon-btn" style="flex: 1; justify-content: center; padding: 0.45rem;">
-            📝 Register New User
+            📝 Create New Account
           </button>
         </div>
 
-        <!-- 1. SIGN IN FORM -->
+        <!-- ==========================================
+             1. SIGN IN FORM (Passenger & Employee)
+             ========================================== -->
         <div id="authSectionLogin">
-          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">Officer Portal Login</h2>
-          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
-            Enter your Indian Railways credentials to access the Block Planning Control Room.
+          <h2 id="loginHeading" style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">Train Passenger Login</h2>
+          <p id="loginSubtitle" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+            Sign in to explore live train routes, rivers, jungles, station halts, and journey advisories.
           </p>
 
           <form id="formLogin" style="margin-top: 1.25rem;">
             <div class="form-group">
-              <label class="form-label">Username / Official ID</label>
-              <input type="text" id="loginUsername" class="form-control" placeholder="e.g. operating, engineering, admin" value="operating" required>
+              <label class="form-label" id="lblUsername">Username / Mobile Number</label>
+              <input type="text" id="loginUsername" class="form-control" placeholder="e.g. passenger or your username" value="passenger" required>
             </div>
 
             <div class="form-group">
               <label class="form-label">Password</label>
-              <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="rail123" required>
+              <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="pass123" required>
             </div>
 
             <div id="loginErrorMsg" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 1rem;"></div>
 
             <button type="submit" id="btnLoginSubmit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.7rem; font-size: 0.92rem;">
-              🔐 Secure Officer Login
+              🚀 Sign In & Enter Portal
             </button>
           </form>
 
-          <div style="margin-top: 1.25rem; background: var(--bg-inset); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary);">
-            <b>Default Demo Credentials:</b><br>
-            • <code>operating</code> / <code>rail123</code> (Sr. DOM - Operations)<br>
-            • <code>engineering</code> / <code>rail123</code> (Sr. DEN - Track)<br>
-            • <code>signalling</code> / <code>rail123</code> (Sr. DSTE - S&T)<br>
-            • <code>traction</code> / <code>rail123</code> (Sr. DEE - TRD)<br>
-            • <code>admin</code> / <code>admin123</code> (Divisional Railway Manager)
+          <div id="demoCredentialsBox" style="margin-top: 1.25rem; background: var(--bg-inset); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary);">
+            <b>Quick Passenger Demo Login:</b> <code>passenger</code> / <code>pass123</code>
           </div>
         </div>
 
-        <!-- 2. REGISTRATION FORM -->
-        <div id="authSectionRegister" style="display: none;">
-          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">Create Officer Account</h2>
+        <!-- ==========================================
+             2. PASSENGER REGISTRATION FORM (Simple: Name, Username, Password, Email - No Dept/Desig!)
+             ========================================== -->
+        <div id="authSectionPassengerRegister" style="display: none;">
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">🚆 Create Passenger Account</h2>
           <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
-            Register a new officer profile to participate in multi-department block planning.
+            Quick sign up for train travelers to access live journey maps, station timings, rivers & terrain explorer.
           </p>
 
-          <form id="formRegister" style="margin-top: 1rem;">
+          <form id="formPassengerRegister" style="margin-top: 1rem;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <div class="form-group">
                 <label class="form-label">Full Name</label>
-                <input type="text" id="regFullName" class="form-control" placeholder="e.g. Kritika Perti" required>
+                <input type="text" id="passRegFullName" class="form-control" placeholder="e.g. Kritika Perti" required>
               </div>
               <div class="form-group">
-                <label class="form-label">Official Username</label>
-                <input type="text" id="regUsername" class="form-control" placeholder="e.g. kperti" required>
+                <label class="form-label">Choose Username</label>
+                <input type="text" id="passRegUsername" class="form-control" placeholder="e.g. kritika123" required>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label">Set Password</label>
+                <input type="password" id="passRegPassword" class="form-control" placeholder="••••••••" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email / Mobile (Optional)</label>
+                <input type="text" id="passRegEmail" class="form-control" placeholder="user@gmail.com / 9876543210">
+              </div>
+            </div>
+
+            <div id="passRegErrorMsg" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 0.75rem;"></div>
+
+            <button type="submit" id="btnPassRegisterSubmit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.65rem; font-size: 0.9rem; margin-top: 0.25rem;">
+              ✨ Create Account & View Train Journey Map
+            </button>
+          </form>
+        </div>
+
+        <!-- ==========================================
+             3. EMPLOYEE REGISTRATION FORM (Official: Dept, Designation, Division)
+             ========================================== -->
+        <div id="authSectionEmployeeRegister" style="display: none;">
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">🛡️ Register Railway Employee / Officer</h2>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+            Official sign up for Indian Railways staff to access the Block Planning & Engineering Control Room.
+          </p>
+
+          <form id="formEmployeeRegister" style="margin-top: 1rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label">Officer Full Name</label>
+                <input type="text" id="empRegFullName" class="form-control" placeholder="e.g. Ramesh Chandra" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Official Username / PF ID</label>
+                <input type="text" id="empRegUsername" class="form-control" placeholder="e.g. rchandra_dom" required>
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" id="regPassword" class="form-control" placeholder="••••••••" required>
+                <input type="password" id="empRegPassword" class="form-control" placeholder="••••••••" required>
               </div>
               <div class="form-group">
-                <label class="form-label">Official Email</label>
-                <input type="email" id="regEmail" class="form-control" placeholder="officer@railnet.gov.in">
+                <label class="form-label">Official RailNet Email</label>
+                <input type="email" id="empRegEmail" class="form-control" placeholder="officer@ncr.railnet.gov.in">
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <div class="form-group">
                 <label class="form-label">Department</label>
-                <select id="regDepartment" class="form-control">
+                <select id="empRegDepartment" class="form-control">
                   <option value="OPERATING">Operating (Traffic / Control)</option>
                   <option value="ENGINEERING" selected>Engineering (Civil / Track)</option>
                   <option value="SNT">Signal & Telecom (S&T)</option>
@@ -135,15 +206,15 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Designation</label>
-                <input type="text" id="regDesignation" class="form-control" placeholder="e.g. Sr. DEN / Section Controller" required>
+                <label class="form-label">Official Designation</label>
+                <input type="text" id="empRegDesignation" class="form-control" placeholder="e.g. Sr. DEN / Section Controller" required>
               </div>
             </div>
 
-            <div id="regErrorMsg" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 0.75rem;"></div>
+            <div id="empRegErrorMsg" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 0.75rem;"></div>
 
-            <button type="submit" id="btnRegisterSubmit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.65rem; font-size: 0.9rem; margin-top: 0.25rem;">
-              ✨ Register & Launch Control Room
+            <button type="submit" id="btnEmpRegisterSubmit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.65rem; font-size: 0.9rem; margin-top: 0.25rem;">
+              ✨ Register Official & Enter Control Room
             </button>
           </form>
         </div>

@@ -1,37 +1,41 @@
 """
 Authentication & Role-Based Access Control (RBAC) for RailBlock AI
-Supports User Registration, Login, Session Management, and Database Persistence
+Supports Separate Registration & Login for:
+1. Train Passengers / Citizens (Simple: Name, Username, Password, Email - No Department/Designation)
+2. Railway Employees & Officers (Official: Employee ID, Department, Designation, Division)
 """
 
 import uuid
-import sqlite3
-import os
 from typing import Dict, Optional, List
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from backend.models import Department
 
 
 class UserProfile(BaseModel):
     username: str
     name: str
-    email: Optional[str] = "officer@indianrailways.gov.in"
-    designation: str
-    department: Department
-    role: str
-    division: str = "Prayagraj (PRYJ)"
-    zone: str = "North Central Railway (NCR)"
+    user_type: str = "PASSENGER"  # PASSENGER or EMPLOYEE
+    email: Optional[str] = "user@railnet.gov.in"
+    phone: Optional[str] = None
+    designation: Optional[str] = "Train Passenger"
+    department: Optional[Department] = None
+    role: str = "PASSENGER"
+    division: Optional[str] = "All Divisions"
+    zone: Optional[str] = "Indian Railways"
     avatar_color: str = "#f5a623"
 
 
 class RegisterRequest(BaseModel):
+    user_type: str = "PASSENGER"  # PASSENGER or EMPLOYEE
     username: str
     password: str
     name: str
     email: Optional[str] = None
-    designation: str
-    department: Department
-    division: Optional[str] = "Prayagraj (PRYJ)"
-    zone: Optional[str] = "North Central Railway (NCR)"
+    phone: Optional[str] = None
+    designation: Optional[str] = None
+    department: Optional[Department] = None
+    division: Optional[str] = None
+    zone: Optional[str] = None
 
 
 # Pre-configured Indian Railways official accounts
@@ -41,6 +45,7 @@ DEFAULT_ACCOUNTS: Dict[str, dict] = {
         "profile": UserProfile(
             username="operating",
             name="Rajesh Sharma",
+            user_type="EMPLOYEE",
             email="rajesh.sharma@ncr.railnet.gov.in",
             designation="Sr. Divisional Operations Manager (Sr. DOM)",
             department=Department.OPERATING,
@@ -55,6 +60,7 @@ DEFAULT_ACCOUNTS: Dict[str, dict] = {
         "profile": UserProfile(
             username="engineering",
             name="Amit Verma",
+            user_type="EMPLOYEE",
             email="amit.verma@ncr.railnet.gov.in",
             designation="Sr. Divisional Engineer / Co-ord (Sr. DEN)",
             department=Department.ENGINEERING,
@@ -69,6 +75,7 @@ DEFAULT_ACCOUNTS: Dict[str, dict] = {
         "profile": UserProfile(
             username="signalling",
             name="Sunil Gupta",
+            user_type="EMPLOYEE",
             email="sunil.gupta@ncr.railnet.gov.in",
             designation="Sr. Divisional Signal & Telecom Engineer (Sr. DSTE)",
             department=Department.SNT,
@@ -83,6 +90,7 @@ DEFAULT_ACCOUNTS: Dict[str, dict] = {
         "profile": UserProfile(
             username="traction",
             name="Pooja Singh",
+            user_type="EMPLOYEE",
             email="pooja.singh@ncr.railnet.gov.in",
             designation="Sr. Divisional Electrical Engineer (Sr. DEE / TRD)",
             department=Department.TRD,
@@ -97,6 +105,7 @@ DEFAULT_ACCOUNTS: Dict[str, dict] = {
         "profile": UserProfile(
             username="admin",
             name="Vikas Meena, IRTS",
+            user_type="EMPLOYEE",
             email="drm.pryj@ncr.railnet.gov.in",
             designation="Divisional Railway Manager (DRM)",
             department=Department.OPERATING,
@@ -104,6 +113,22 @@ DEFAULT_ACCOUNTS: Dict[str, dict] = {
             division="Prayagraj (PRYJ)",
             zone="North Central Railway (NCR)",
             avatar_color="#ef4444"
+        )
+    },
+    # Sample Passenger Account
+    "passenger": {
+        "password": "pass123",
+        "profile": UserProfile(
+            username="passenger",
+            name="Rahul Mehra",
+            user_type="PASSENGER",
+            email="rahul.mehra@gmail.com",
+            designation="Train Passenger",
+            department=None,
+            role="PASSENGER",
+            division="All Routes",
+            zone="Indian Railways",
+            avatar_color="#06b6d4"
         )
     }
 }
@@ -130,22 +155,42 @@ class AuthManager:
     def register_user(cls, req: RegisterRequest) -> tuple[str, UserProfile]:
         u_key = req.username.lower().strip()
         if u_key in OFFICIAL_ACCOUNTS:
-            raise ValueError(f"Username '{req.username}' is already registered. Please choose another username or log in.")
+            raise ValueError(f"Username '{req.username}' is already taken. Please choose another username or sign in.")
 
-        colors = ["#10b981", "#38bdf8", "#c084fc", "#f5a623", "#f43f5e", "#06b6d4"]
+        is_employee = req.user_type.upper() == "EMPLOYEE"
+
+        colors = ["#10b981", "#38bdf8", "#c084fc", "#f5a623", "#f43f5e", "#06b6d4", "#ec4899"]
         avatar_color = colors[len(OFFICIAL_ACCOUNTS) % len(colors)]
 
-        profile = UserProfile(
-            username=u_key,
-            name=req.name.strip(),
-            email=req.email or f"{u_key}@railnet.gov.in",
-            designation=req.designation.strip(),
-            department=req.department,
-            role=req.department.value,
-            division=req.division or "Prayagraj (PRYJ)",
-            zone=req.zone or "North Central Railway (NCR)",
-            avatar_color=avatar_color
-        )
+        if is_employee:
+            profile = UserProfile(
+                username=u_key,
+                name=req.name.strip(),
+                user_type="EMPLOYEE",
+                email=req.email or f"{u_key}@railnet.gov.in",
+                phone=req.phone,
+                designation=req.designation.strip() if req.designation else "Railway Officer",
+                department=req.department or Department.OPERATING,
+                role=req.department.value if req.department else "OPERATING",
+                division=req.division or "Prayagraj (PRYJ)",
+                zone=req.zone or "North Central Railway (NCR)",
+                avatar_color=avatar_color
+            )
+        else:
+            # TRAIN PASSENGER / CITIZEN (No department, No employee designation)
+            profile = UserProfile(
+                username=u_key,
+                name=req.name.strip(),
+                user_type="PASSENGER",
+                email=req.email or f"{u_key}@gmail.com",
+                phone=req.phone,
+                designation="Train Passenger",
+                department=None,
+                role="PASSENGER",
+                division="All Routes",
+                zone="Indian Railways",
+                avatar_color=avatar_color
+            )
 
         OFFICIAL_ACCOUNTS[u_key] = {
             "password": req.password,

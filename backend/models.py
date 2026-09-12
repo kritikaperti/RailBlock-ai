@@ -308,10 +308,11 @@ class LoginResponse(BaseModel):
     token: str
     username: str
     name: str
-    designation: str
-    department: str
-    role: str
-    division: str
-    zone: str
-    avatar_color: str
+    user_type: str = "PASSENGER"  # PASSENGER or EMPLOYEE
+    designation: Optional[str] = None
+    department: Optional[str] = None
+    role: str = "PASSENGER"
+    division: Optional[str] = "All Divisions"
+    zone: Optional[str] = "Indian Railways"
+    avatar_color: str = "#f5a623"
 

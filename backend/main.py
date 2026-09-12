@@ -84,11 +84,12 @@ def login(req: LoginRequest):
         token=token,
         username=profile.username,
         name=profile.name,
+        user_type=profile.user_type,
         designation=profile.designation,
-        department=profile.department.value,
+        department=profile.department.value if profile.department else None,
         role=profile.role,
-        division=profile.division,
-        zone=profile.zone,
+        division=profile.division or "All Routes",
+        zone=profile.zone or "Indian Railways",
         avatar_color=profile.avatar_color
     )
 
@@ -117,7 +118,7 @@ def get_current_user(token: Optional[str] = Query(None)):
 
 @app.post("/api/auth/register", response_model=LoginResponse)
 def register_user(req: RegisterRequest):
-    """Registers a new officer/user account and creates an active session"""
+    """Registers a new passenger or officer account and creates an active session"""
     try:
         token, profile = AuthManager.register_user(req)
         return LoginResponse(
@@ -125,11 +126,12 @@ def register_user(req: RegisterRequest):
             token=token,
             username=profile.username,
             name=profile.name,
+            user_type=profile.user_type,
             designation=profile.designation,
-            department=profile.department.value,
+            department=profile.department.value if profile.department else None,
             role=profile.role,
-            division=profile.division,
-            zone=profile.zone,
+            division=profile.division or "All Routes",
+            zone=profile.zone or "Indian Railways",
             avatar_color=profile.avatar_color
         )
     except ValueError as e:
@@ -150,11 +152,13 @@ def list_demo_officials():
             "username": k,
             "name": v["profile"].name,
             "designation": v["profile"].designation,
-            "department": v["profile"].department.value,
+            "department": v["profile"].department.value if v["profile"].department else "EMPLOYEE",
             "role": v["profile"].role,
+            "user_type": getattr(v["profile"], "user_type", "EMPLOYEE"),
             "avatar_color": v["profile"].avatar_color
         }
         for k, v in OFFICIAL_ACCOUNTS.items()
+        if getattr(v["profile"], "user_type", "EMPLOYEE") == "EMPLOYEE"
     ]
 
 
@@ -248,12 +252,13 @@ def get_network(corridor_id: Optional[str] = "CORRIDOR_GRAND_CHORD"):
 @app.get("/api/network/terrain")
 def get_corridor_terrain(corridor_id: Optional[str] = "CORRIDOR_GRAND_CHORD"):
     """Returns geographic rivers, jungles, forest reserves, and bridges along the corridor"""
-    from backend.data_generator import TERRAIN_FEATURES_GRAND_CHORD
+    from backend.data_generator import get_corridor_terrain_features
+    terrain = get_corridor_terrain_features(corridor_id or "CORRIDOR_GRAND_CHORD")
     return {
         "corridor_id": corridor_id,
-        "terrain": TERRAIN_FEATURES_GRAND_CHORD,
-        "total_rivers": len(TERRAIN_FEATURES_GRAND_CHORD["rivers"]),
-        "total_jungles": len(TERRAIN_FEATURES_GRAND_CHORD["jungles"])
+        "terrain": terrain,
+        "total_rivers": len(terrain.get("rivers", [])),
+        "total_jungles": len(terrain.get("jungles", []))
     }
 
 

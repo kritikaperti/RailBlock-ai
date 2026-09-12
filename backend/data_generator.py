@@ -734,3 +734,13 @@ class DataStore:
         self.plans_by_horizon = {}
         self.last_optimized_timestamp = None
         self.simulation_history = []
+
+
+def get_corridor_terrain_features(corridor_id: str = "CORRIDOR_GRAND_CHORD") -> Dict[str, Any]:
+    """Returns geographic rivers, jungles, forest reserves, and stations for a given corridor"""
+    terrain = {
+        "rivers": list(TERRAIN_FEATURES_GRAND_CHORD["rivers"]),
+        "jungles": list(TERRAIN_FEATURES_GRAND_CHORD["jungles"]),
+        "stations": list(STATIONS_GRAND_CHORD)
+    }
+    return terrain

@@ -44,33 +44,134 @@ function initVisualizers() {
 }
 
 // ==========================================================================
-// AUTHENTICATION & SESSION MANAGEMENT
+// AUTHENTICATION & PERSONA MANAGEMENT (PASSENGER vs EMPLOYEE)
 // ==========================================================================
+
+let activePersona = 'PASSENGER'; // 'PASSENGER' | 'EMPLOYEE'
 
 async function initAuth() {
   loadQuickLoginOfficials();
 
-  // Auth Mode Switcher (Sign In vs Register)
+  const btnPersonaPass = document.getElementById('btnPersonaPassenger');
+  const btnPersonaEmp = document.getElementById('btnPersonaEmployee');
+  const quickLoginSec = document.getElementById('quickLoginSection');
+  const loginHeading = document.getElementById('loginHeading');
+  const loginSubtitle = document.getElementById('loginSubtitle');
+  const lblUsername = document.getElementById('lblUsername');
+  const loginUserInp = document.getElementById('loginUsername');
+  const loginPassInp = document.getElementById('loginPassword');
+  const demoBox = document.getElementById('demoCredentialsBox');
+
   const btnTabLogin = document.getElementById('btnAuthTabLogin');
   const btnTabReg = document.getElementById('btnAuthTabRegister');
   const secLogin = document.getElementById('authSectionLogin');
-  const secReg = document.getElementById('authSectionRegister');
+  const secPassReg = document.getElementById('authSectionPassengerRegister');
+  const secEmpReg = document.getElementById('authSectionEmployeeRegister');
 
-  if (btnTabLogin && btnTabReg && secLogin && secReg) {
+  function updateAuthView() {
+    const isRegister = btnTabReg && btnTabReg.classList.contains('active');
+    
+    if (activePersona === 'PASSENGER') {
+      if (btnPersonaPass) {
+        btnPersonaPass.classList.add('active');
+        btnPersonaPass.style.border = '2px solid var(--ir-gold)';
+      }
+      if (btnPersonaEmp) {
+        btnPersonaEmp.classList.remove('active');
+        btnPersonaEmp.style.border = '1px solid var(--border-color)';
+      }
+      if (quickLoginSec) quickLoginSec.style.display = 'none';
+
+      if (loginHeading) loginHeading.innerText = '🚆 Train Passenger Login';
+      if (loginSubtitle) loginSubtitle.innerText = 'Sign in to explore live train routes, rivers, jungles, station halts, and journey advisories.';
+      if (lblUsername) lblUsername.innerText = 'Username / Mobile Number';
+      if (loginUserInp) {
+        loginUserInp.placeholder = 'e.g. passenger or your username';
+        if (!loginUserInp.value || loginUserInp.value.includes('_dom') || loginUserInp.value === 'admin') {
+          loginUserInp.value = 'passenger';
+          loginPassInp.value = 'pass123';
+        }
+      }
+      if (demoBox) {
+        demoBox.innerHTML = '<b>Quick Passenger Demo Login:</b> <code>passenger</code> / <code>pass123</code>';
+      }
+
+      if (isRegister) {
+        if (secLogin) secLogin.style.display = 'none';
+        if (secPassReg) secPassReg.style.display = 'block';
+        if (secEmpReg) secEmpReg.style.display = 'none';
+      } else {
+        if (secLogin) secLogin.style.display = 'block';
+        if (secPassReg) secPassReg.style.display = 'none';
+        if (secEmpReg) secEmpReg.style.display = 'none';
+      }
+    } else {
+      // EMPLOYEE PERSONA
+      if (btnPersonaEmp) {
+        btnPersonaEmp.classList.add('active');
+        btnPersonaEmp.style.border = '2px solid var(--border-focus)';
+      }
+      if (btnPersonaPass) {
+        btnPersonaPass.classList.remove('active');
+        btnPersonaPass.style.border = '1px solid var(--border-color)';
+      }
+      if (quickLoginSec) quickLoginSec.style.display = 'block';
+
+      if (loginHeading) loginHeading.innerText = '🛡️ Railway Employee / Officer Login';
+      if (loginSubtitle) loginSubtitle.innerText = 'Sign in to access IR-ABPS AI Block Planning, Electronic Interlocking, and Engineering Control.';
+      if (lblUsername) lblUsername.innerText = 'Official RailNet Username / PF ID';
+      if (loginUserInp) {
+        loginUserInp.placeholder = 'e.g. rsharma_dom or admin';
+        if (loginUserInp.value === 'passenger') {
+          loginUserInp.value = 'rsharma_dom';
+          loginPassInp.value = 'rail123';
+        }
+      }
+      if (demoBox) {
+        demoBox.innerHTML = '<b>Quick Employee Demo Login:</b> <code>rsharma_dom</code> / <code>rail123</code> or <code>admin</code> / <code>admin123</code>';
+      }
+
+      if (isRegister) {
+        if (secLogin) secLogin.style.display = 'none';
+        if (secPassReg) secPassReg.style.display = 'none';
+        if (secEmpReg) secEmpReg.style.display = 'block';
+      } else {
+        if (secLogin) secLogin.style.display = 'block';
+        if (secPassReg) secPassReg.style.display = 'none';
+        if (secEmpReg) secEmpReg.style.display = 'none';
+      }
+    }
+  }
+
+  // Persona Buttons
+  if (btnPersonaPass) {
+    btnPersonaPass.addEventListener('click', () => {
+      activePersona = 'PASSENGER';
+      updateAuthView();
+    });
+  }
+  if (btnPersonaEmp) {
+    btnPersonaEmp.addEventListener('click', () => {
+      activePersona = 'EMPLOYEE';
+      updateAuthView();
+    });
+  }
+
+  // Auth Mode Switcher (Sign In vs Register)
+  if (btnTabLogin && btnTabReg) {
     btnTabLogin.addEventListener('click', () => {
       btnTabLogin.classList.add('active');
       btnTabReg.classList.remove('active');
-      secLogin.style.display = 'block';
-      secReg.style.display = 'none';
+      updateAuthView();
     });
     btnTabReg.addEventListener('click', () => {
       btnTabReg.classList.add('active');
       btnTabLogin.classList.remove('active');
-      secReg.style.display = 'block';
-      secLogin.style.display = 'none';
+      updateAuthView();
     });
   }
 
+  // Login Form Submission
   const formLogin = document.getElementById('formLogin');
   if (formLogin) {
     formLogin.addEventListener('submit', async (e) => {
@@ -81,11 +182,21 @@ async function initAuth() {
     });
   }
 
-  const formRegister = document.getElementById('formRegister');
-  if (formRegister) {
-    formRegister.addEventListener('submit', async (e) => {
+  // Passenger Registration Form Submission (No Department / Designation)
+  const formPassReg = document.getElementById('formPassengerRegister');
+  if (formPassReg) {
+    formPassReg.addEventListener('submit', async (e) => {
       e.preventDefault();
-      await performRegister();
+      await performPassengerRegister();
+    });
+  }
+
+  // Employee Registration Form Submission (With Department & Designation)
+  const formEmpReg = document.getElementById('formEmployeeRegister');
+  if (formEmpReg) {
+    formEmpReg.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await performEmployeeRegister();
     });
   }
 
@@ -94,6 +205,7 @@ async function initAuth() {
     btnLogout.addEventListener('click', performLogout);
   }
 
+  // Check persisted session
   const savedToken = localStorage.getItem('railblock_auth_token');
   if (savedToken) {
     try {
@@ -111,6 +223,7 @@ async function initAuth() {
     }
   }
 
+  updateAuthView();
   showLoginScreen();
 }
 
@@ -174,7 +287,8 @@ async function performLogin(username, password) {
     AppState.currentUser = data;
     localStorage.setItem('railblock_auth_token', data.token);
 
-    showToast(`Welcome, ${data.name} (${data.designation})`, 'success');
+    const designationText = data.designation ? ` (${data.designation})` : ' (Passenger)';
+    showToast(`Welcome, ${data.name}${designationText}`, 'success');
     showAppScreen();
     await loadInitialData();
   } catch (err) {
@@ -185,26 +299,25 @@ async function performLogin(username, password) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerText = '🔐 Secure Officer Login';
+      btn.innerText = '🚀 Sign In & Enter Portal';
     }
   }
 }
 
-async function performRegister() {
-  const errDiv = document.getElementById('regErrorMsg');
-  const btn = document.getElementById('btnRegisterSubmit');
+// Passenger Registration (No Dept / Designation)
+async function performPassengerRegister() {
+  const errDiv = document.getElementById('passRegErrorMsg');
+  const btn = document.getElementById('btnPassRegisterSubmit');
 
-  const fullName = document.getElementById('regFullName').value.trim();
-  const username = document.getElementById('regUsername').value.trim();
-  const password = document.getElementById('regPassword').value;
-  const email = document.getElementById('regEmail').value.trim();
-  const department = document.getElementById('regDepartment').value;
-  const designation = document.getElementById('regDesignation').value.trim();
+  const fullName = document.getElementById('passRegFullName').value.trim();
+  const username = document.getElementById('passRegUsername').value.trim();
+  const password = document.getElementById('passRegPassword').value;
+  const email = document.getElementById('passRegEmail').value.trim();
 
   if (errDiv) errDiv.style.display = 'none';
   if (btn) {
     btn.disabled = true;
-    btn.innerText = 'Creating Officer Profile...';
+    btn.innerText = 'Creating Passenger Account...';
   }
 
   try {
@@ -215,17 +328,18 @@ async function performRegister() {
         name: fullName,
         username: username,
         password: password,
-        email: email,
-        department: department,
-        designation: designation,
-        division: "Prayagraj (PRYJ)",
-        zone: "North Central Railway (NCR)"
+        email: email || null,
+        user_type: "PASSENGER",
+        department: null,
+        designation: null,
+        division: "Indian Railways Network",
+        zone: "All Zones"
       })
     });
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.detail || 'Registration failed');
+      throw new Error(err.detail || 'Passenger registration failed');
     }
 
     const data = await res.json();
@@ -233,7 +347,7 @@ async function performRegister() {
     AppState.currentUser = data;
     localStorage.setItem('railblock_auth_token', data.token);
 
-    showToast(`Officer account created! Welcome, ${data.name}`, 'success');
+    showToast(`Welcome aboard, ${data.name}! Passenger Portal ready.`, 'success');
     showAppScreen();
     await loadInitialData();
   } catch (err) {
@@ -244,7 +358,68 @@ async function performRegister() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerText = '✨ Register & Launch Control Room';
+      btn.innerText = '✨ Create Account & View Train Journey Map';
+    }
+  }
+}
+
+// Railway Employee Registration (Official: Dept, Designation, Division)
+async function performEmployeeRegister() {
+  const errDiv = document.getElementById('empRegErrorMsg');
+  const btn = document.getElementById('btnEmpRegisterSubmit');
+
+  const fullName = document.getElementById('empRegFullName').value.trim();
+  const username = document.getElementById('empRegUsername').value.trim();
+  const password = document.getElementById('empRegPassword').value;
+  const email = document.getElementById('empRegEmail').value.trim();
+  const department = document.getElementById('empRegDepartment').value;
+  const designation = document.getElementById('empRegDesignation').value.trim();
+
+  if (errDiv) errDiv.style.display = 'none';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = 'Registering Official Profile...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: fullName,
+        username: username,
+        password: password,
+        email: email || null,
+        user_type: "EMPLOYEE",
+        department: department,
+        designation: designation,
+        division: "Prayagraj (PRYJ)",
+        zone: "North Central Railway (NCR)"
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Employee registration failed');
+    }
+
+    const data = await res.json();
+    AppState.authToken = data.token;
+    AppState.currentUser = data;
+    localStorage.setItem('railblock_auth_token', data.token);
+
+    showToast(`Official account registered! Welcome, ${data.name}`, 'success');
+    showAppScreen();
+    await loadInitialData();
+  } catch (err) {
+    if (errDiv) {
+      errDiv.innerText = err.message;
+      errDiv.style.display = 'block';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = '✨ Register Official & Enter Control Room';
     }
   }
 }
@@ -285,11 +460,20 @@ function showAppScreen() {
     const roleTag = document.getElementById('userRoleTag');
 
     if (avatar) {
-      avatar.style.background = user.avatar_color || '#10b981';
-      avatar.innerText = user.name.split(' ').map(n => n[0]).join('').slice(0, 2);
+      avatar.style.background = user.avatar_color || (user.user_type === 'PASSENGER' ? '#0284c7' : '#10b981');
+      avatar.innerText = user.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (user.user_type === 'PASSENGER' ? 'TR' : 'IR');
     }
-    if (name) name.innerText = user.name;
-    if (roleTag) roleTag.innerText = `${user.designation} (${user.department})`;
+    if (name) name.innerText = user.name || 'User';
+    if (roleTag) {
+      if (user.user_type === 'PASSENGER') {
+        roleTag.innerText = '🚆 Train Passenger / Citizen';
+        roleTag.style.color = '#38bdf8';
+        roleTag.style.fontWeight = '700';
+      } else {
+        roleTag.innerText = `${user.designation || 'Staff'} (${user.department || 'OPERATING'})`;
+        roleTag.style.color = '';
+      }
+    }
   }
 
   setTimeout(() => {
